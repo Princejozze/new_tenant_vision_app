@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/src/models/house.dart';
 
 class HouseCard extends StatefulWidget {
@@ -26,7 +27,7 @@ class _HouseCardState extends State<HouseCard> {
           borderRadius: BorderRadius.circular(16.0),
         ),
         elevation: _isHovering ? 10 : 4,
-        shadowColor: Colors.black.withOpacity(0.2),
+        shadowColor: Colors.black.withAlpha(51),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +99,9 @@ class _HouseCardState extends State<HouseCard> {
                     ),
                     const Spacer(),
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        context.go('/house/${widget.house.id}');
+                      },
                       icon: const Icon(Icons.arrow_forward),
                       label: const Text('Manage House'),
                       style: ElevatedButton.styleFrom(

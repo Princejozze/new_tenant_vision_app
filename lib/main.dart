@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/src/screens/dashboard_screen.dart';
+import 'package:myapp/src/navigation/router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = ColorScheme.fromSeed(seedColor: Colors.blue);
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Rental Property Manager',
       theme: ThemeData(
         useMaterial3: true,
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const DashboardScreen(),
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
   }

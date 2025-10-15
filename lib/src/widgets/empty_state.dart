@@ -12,7 +12,7 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.home, size: 64, color: colorScheme.onSurface.withOpacity(0.4)),
+          Icon(Icons.home, size: 64, color: colorScheme.onSurface.withAlpha(102)),
           const SizedBox(height: 20),
           Text(
             'No houses yet',
