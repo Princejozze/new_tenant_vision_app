@@ -2,33 +2,29 @@
 
 ## Overview
 
-This project is a Flutter application for managing rental properties. It provides a dashboard to view and manage properties, with features for adding new properties and viewing existing ones.
-
-## Style and Design
-
-The application uses the Material 3 design system with a blue-based color scheme. It features a responsive layout that adapts to different screen sizes, with a focus on a clean and modern user interface.
-
-- **Color Scheme:** Based on `Colors.blue`.
-- **Typography:** Standard Material 3 typography.
-- **Layout:** Responsive layout that adjusts for mobile and desktop screens.
-- **Card Theme:** Cards have a slight elevation, rounded corners, and a subtle border.
+A community Vision app that helps tenants and landlords to easily manage their rental properties.
+The app will allow landlords to list their properties, and tenants to search for properties, apply for them, and pay their rent.
+The app will also have a feature that allows tenants to report maintenance issues, and landlords to track the status of these issues.
 
 ## Features
 
-- **Dashboard:** The main screen of the application, displaying a summary of properties.
-- **Property List:** A responsive grid of properties, displayed as cards.
-- **Add Property:** A dialog for adding new properties, with fields for property name, address, and rent. The dialog is displayed as a bottom sheet on mobile and a dialog on desktop.
-- **Property Details:** A detailed view of a property, showing its rooms and other information.
-- **Room Management:** A card-based view of rooms within a property, with a "Manage" button for future actions.
+- **Property listings:** Landlords can create and manage property listings, including details like rent, size, amenities, and photos.
+- **Tenant applications:** Tenants can submit applications for rental properties directly through the app.
+- **Online rent payments:** Tenants can pay their rent securely online, and landlords can track payments.
+- **Maintenance requests:** Tenants can report maintenance issues, and landlords can manage and track the resolution process.
+- **Communication tools:** In-app messaging for easy communication between tenants and landlords.
+- **Dark mode:** The app will have a "dark mode" feature.
 
-## Current Task
+## Technology Stack
 
-**Task:** Complete the initial development of the application.
+- **Frontend:** Flutter
+- **Backend:** Firebase
 
-**Plan:**
+## Current Plan
 
-1.  **Fix mobile layout issues:** Resolved the "two dashboards" problem by deleting the duplicate dashboard screen and correcting the import statements.
-2.  **Improve mobile UX:** Added a `FloatingActionButton` to the dashboard for adding new properties on mobile devices.
-3.  **Enhance "Add New Property" dialog:** Restored the full functionality of the dialog, including form validation and fields for property details.
-4.  **Add "Manage" button:** Added a "Manage" button to the `RoomCard` widget to provide a consistent user experience.
-5.  **Finalize and document:** Update the `blueprint.md` file to reflect the current state of the project and ensure all features are working as expected.
+1.  **Create the Home Screen:**
+    *   Display a list of properties with an image, name, location, and price.
+    *   Add a search bar at the top to search for properties by name or location.
+    *   Implement a bottom navigation bar with three tabs: "Dashboard", "Properties", and "Profile".
+2.  **Implement Theme:**
+    *   Create a theme that supports both light and dark modes.

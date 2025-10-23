@@ -1,38 +1,39 @@
-# To learn more about how to use Nix to configure your environment
-# see: https://firebase.google.com/docs/studio/customize-workspace
-{ pkgs, ... }: {
-  # Which nixpkgs channel to use.
-  channel = "unstable"; # Using unstable to get a newer Flutter/Dart SDK
+{ pkgs, ... }:
 
-  # Use https://search.nixos.org/packages to find packages
+let
+  jdk = pkgs.openjdk17;
+in
+{
+  # Use a stable Nix channel.
+  channel = "stable-24.05";
+
+  # Install necessary packages for Flutter development.
   packages = [
     pkgs.flutter
     pkgs.dart
+    pkgs.git
+    pkgs.which
+    pkgs.openjdk17
+    pkgs.chromium
   ];
 
-  # Sets environment variables in the workspace
-  env = {};
+  # Define environment variables.
+  env = {
+    JAVA_HOME = "${jdk}";
+    CHROME_EXECUTABLE = "${pkgs.chromium}/bin/chromium";
+  };
 
-  idx = {
-    # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
-    extensions = [
-      "Dart-Code.flutter"
-      "Dart-Code.dart-code"
-    ];
-
-    workspace = {
-      # To run something each time the workspace is (re)started, use the `onStart` hook
-      onStart = {};
-    };
-
-    # Enable previews and customize configuration
+  # Configure the IDE previews.
+  idx.previews = {
+    enable = true;
     previews = {
-      enable = true;
-      previews = {
-        web = {
-          command = [ "sh" "-c" "flutter run --machine -d web-server --web-hostname 0.0.0.0 --web-port $PORT" ];
-          manager = "flutter";
-        };
+      web = {
+        command = ["flutter" "run" "-d" "web-server" "--web-hostname" "0.0.0.0" "--web-port" "$PORT"];
+        manager = "web";
+      };
+      # Re-enabling the Android emulator.
+      android = {
+        manager = "flutter";
       };
     };
   };

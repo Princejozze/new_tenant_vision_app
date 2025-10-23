@@ -1,4 +1,7 @@
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/main.dart';
 import 'package:myapp/src/widgets/house_list.dart';
 import 'package:myapp/src/widgets/add_property_dialog.dart';
 import 'package:myapp/src/widgets/responsive_layout.dart';
@@ -24,6 +27,14 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    final themeToggleButton = IconButton(
+      icon: Icon(themeProvider.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
+      onPressed: () => themeProvider.toggleTheme(),
+      tooltip: 'Toggle Theme',
+    );
+
     final mobileBody = Scaffold(
       appBar: AppBar(
         title: const Text('Properties'),
@@ -38,9 +49,10 @@ class DashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.add),
             onPressed: () => _showAddPropertyDialog(context),
           ),
+          themeToggleButton,
         ],
       ),
-      body: const Expanded(child: HouseList()),
+      body: const HouseList(),
     );
 
     final desktopBody = Scaffold(
@@ -74,6 +86,8 @@ class DashboardScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   ),
                 ),
+                const SizedBox(width: 8),
+                themeToggleButton,
               ],
             ),
             const SizedBox(height: 16),
