@@ -24,6 +24,25 @@ final GoRouter router = GoRouter(
             print('Looking for house with ID: $houseId');
             print('Available houses: ${houseService.houses.map((h) => h.id).toList()}');
             
+            // Wait a moment for houses to load if they're not available yet
+            if (houseService.houses.isEmpty) {
+              print('No houses found, waiting for initialization...');
+              return ScaffoldWithNavigation(
+                child: Scaffold(
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text('Loading houses...'),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+            
             final house = houseService.getHouseById(houseId);
             if (house != null) {
               print('Found house: ${house.name} with ${house.rooms.length} rooms');

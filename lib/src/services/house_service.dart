@@ -25,12 +25,20 @@ class HouseService extends ChangeNotifier {
 
   Future<void> _loadHouses() async {
     try {
+      print('Loading houses from local storage...');
       final prefs = await SharedPreferences.getInstance();
       final housesJson = prefs.getString(_housesKey);
       if (housesJson != null) {
+        print('Found saved houses data, parsing...');
         final List<dynamic> housesList = json.decode(housesJson);
         _houses = housesList.map((json) => _houseFromJson(json)).toList();
+        print('Loaded ${_houses.length} houses from storage');
+        for (var house in _houses) {
+          print('House: ${house.name} (ID: ${house.id}) with ${house.rooms.length} rooms');
+        }
         notifyListeners();
+      } else {
+        print('No saved houses data found');
       }
     } catch (e) {
       print('Error loading houses: $e');
@@ -39,9 +47,11 @@ class HouseService extends ChangeNotifier {
 
   Future<void> _saveHouses() async {
     try {
+      print('Saving ${_houses.length} houses to local storage...');
       final prefs = await SharedPreferences.getInstance();
       final housesJson = json.encode(_houses.map((house) => _houseToJson(house)).toList());
       await prefs.setString(_housesKey, housesJson);
+      print('Successfully saved houses to local storage');
     } catch (e) {
       print('Error saving houses: $e');
     }
@@ -102,17 +112,21 @@ class HouseService extends ChangeNotifier {
   }
 
   List<Room> _generateRooms(int numberOfRooms) {
+    print('Generating $numberOfRooms rooms...');
     final rooms = <Room>[];
     for (int i = 1; i <= numberOfRooms; i++) {
-      rooms.add(Room(
+      final room = Room(
         roomNumber: i.toString(),
         rentAmount: 1200.0,
         rentStatus: 'Vacant',
         startDate: DateTime.now(),
         nextDueDate: DateTime.now(),
         status: RoomStatus.vacant,
-      ));
+      );
+      rooms.add(room);
+      print('Created room ${room.roomNumber} with status ${room.status}');
     }
+    print('Generated ${rooms.length} rooms successfully');
     return rooms;
   }
 
