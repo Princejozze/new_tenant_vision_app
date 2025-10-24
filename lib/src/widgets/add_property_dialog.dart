@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/src/models/house.dart';
 
 class AddPropertyDialog extends StatefulWidget {
-  const AddPropertyDialog({super.key});
+  final Function(House) onSave;
+  const AddPropertyDialog({super.key, required this.onSave});
 
   @override
   State<AddPropertyDialog> createState() => _AddPropertyDialogState();
@@ -24,12 +26,14 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
 
   void _saveHouse() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement save logic with the new data
-      // For example:
-      // final String houseName = _nameController.text;
-      // final String address = _addressController.text;
-      // final int numberOfRooms = int.parse(_roomsController.text);
-      // print('House Name: $houseName, Address: $address, Rooms: $numberOfRooms');
+      final newHouse = House(
+        id: DateTime.now().toString(),
+        name: _nameController.text,
+        address: _addressController.text,
+        numberOfRooms: int.parse(_roomsController.text),
+        imageUrl: 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/400/300',
+      );
+      widget.onSave(newHouse);
       Navigator.of(context).pop();
     }
   }

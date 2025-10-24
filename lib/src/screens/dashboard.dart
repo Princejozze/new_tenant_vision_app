@@ -2,12 +2,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/main.dart';
+import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/widgets/house_list.dart';
 import 'package:myapp/src/widgets/add_property_dialog.dart';
 import 'package:myapp/src/widgets/responsive_layout.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final List<House> _houses = House.dummyData;
+
+  void _addHouse(House house) {
+    setState(() {
+      _houses.add(house);
+    });
+  }
 
   void _showAddPropertyDialog(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -15,12 +29,12 @@ class DashboardScreen extends StatelessWidget {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (context) => const AddPropertyDialog(),
+        builder: (context) => AddPropertyDialog(onSave: _addHouse),
       );
     } else {
       showDialog(
         context: context,
-        builder: (context) => const AddPropertyDialog(),
+        builder: (context) => AddPropertyDialog(onSave: _addHouse),
       );
     }
   }
@@ -52,7 +66,7 @@ class DashboardScreen extends StatelessWidget {
           themeToggleButton,
         ],
       ),
-      body: const HouseList(),
+      body: HouseList(houses: _houses),
     );
 
     final desktopBody = Scaffold(
@@ -91,7 +105,7 @@ class DashboardScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            const Expanded(child: HouseList()),
+            Expanded(child: HouseList(houses: _houses)),
           ],
         ),
       ),

@@ -3,11 +3,11 @@ import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/widgets/house_card.dart';
 
 class HouseList extends StatelessWidget {
-  const HouseList({super.key});
+  final List<House> houses;
+  const HouseList({super.key, required this.houses});
 
   @override
   Widget build(BuildContext context) {
-    final List<House> houses = House.dummyData;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Determine the number of columns based on screen width

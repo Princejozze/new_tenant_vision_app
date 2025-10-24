@@ -11,7 +11,7 @@ in
   packages = [
     pkgs.flutter
     pkgs.dart
-    pkgs.git
+    (pkgs.git.override { })
     pkgs.which
     pkgs.openjdk17
     pkgs.chromium
@@ -31,7 +31,6 @@ in
         command = ["flutter" "run" "-d" "web-server" "--web-hostname" "0.0.0.0" "--web-port" "$PORT"];
         manager = "web";
       };
-      # Re-enabling the Android emulator.
       android = {
         manager = "flutter";
       };
