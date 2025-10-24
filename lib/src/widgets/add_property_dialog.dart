@@ -30,8 +30,12 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
         id: DateTime.now().toString(),
         name: _nameController.text,
         address: _addressController.text,
-        numberOfRooms: int.parse(_roomsController.text),
+        totalRooms: int.parse(_roomsController.text),
         imageUrl: 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/400/300',
+        location: 'Unknown',
+        price: '0',
+        occupiedRooms: 0,
+        rooms: [],
       );
       widget.onSave(newHouse);
       Navigator.of(context).pop();
