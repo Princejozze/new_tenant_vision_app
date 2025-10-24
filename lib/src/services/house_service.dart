@@ -10,6 +10,15 @@ class HouseService extends ChangeNotifier {
 
   List<House> get houses => _houses;
 
+  House? getHouseById(String id) {
+    try {
+      return _houses.firstWhere((h) => h.id == id);
+    } catch (e) {
+      print('House not found with ID: $id');
+      return null;
+    }
+  }
+
   HouseService() {
     _loadHouses();
   }
@@ -43,6 +52,9 @@ class HouseService extends ChangeNotifier {
     required String address,
     required int numberOfRooms,
   }) {
+    final rooms = _generateRooms(numberOfRooms);
+    print('Generated ${rooms.length} rooms for house: $name');
+    
     final newHouse = House(
       id: 'house-${DateTime.now().millisecondsSinceEpoch}',
       name: name,
@@ -52,9 +64,10 @@ class HouseService extends ChangeNotifier {
       address: address,
       totalRooms: numberOfRooms,
       occupiedRooms: 0, // New houses start with no occupied rooms
-      rooms: _generateRooms(numberOfRooms),
+      rooms: rooms,
     );
 
+    print('Created house with ID: ${newHouse.id} and ${newHouse.rooms.length} rooms');
     _houses = [..._houses, newHouse];
     notifyListeners();
     _saveHouses(); // Save to local storage

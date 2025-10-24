@@ -20,8 +20,50 @@ final GoRouter router = GoRouter(
           builder: (BuildContext context, GoRouterState state) {
             final houseId = state.pathParameters['houseId']!;
             final houseService = Provider.of<HouseService>(context, listen: false);
-            final house = houseService.houses.firstWhere((h) => h.id == houseId);
-            return ScaffoldWithNavigation(child: HouseDetailPage(house: house));
+            
+            print('Looking for house with ID: $houseId');
+            print('Available houses: ${houseService.houses.map((h) => h.id).toList()}');
+            
+            final house = houseService.getHouseById(houseId);
+            if (house != null) {
+              print('Found house: ${house.name} with ${house.rooms.length} rooms');
+              return ScaffoldWithNavigation(child: HouseDetailPage(house: house));
+            } else {
+              print('House not found with ID: $houseId');
+              // If house is not found, show error page
+              return ScaffoldWithNavigation(
+                child: Scaffold(
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'House Not Found',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'The house with ID "$houseId" could not be found.',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => context.go('/'),
+                          child: const Text('Back to Dashboard'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
           },
         ),
       ],
