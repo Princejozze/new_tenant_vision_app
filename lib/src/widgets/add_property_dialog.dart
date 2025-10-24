@@ -104,7 +104,7 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
           TextFormField(
             controller: _roomsController,
             decoration: const InputDecoration(
-              hintText: '1',
+              hintText: 'e.g., 4',
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
@@ -115,8 +115,12 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
               if (value == null || value.isEmpty) {
                 return 'Please enter the number of rooms';
               }
-              if (int.tryParse(value) == null) {
+              final n = int.tryParse(value);
+              if (n == null) {
                 return 'Please enter a valid number';
+              }
+              if (n <= 0) {
+                return 'Number of rooms must be greater than zero';
               }
               return null;
             },
