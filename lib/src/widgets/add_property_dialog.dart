@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/src/models/house.dart';
+import 'package:myapp/src/models/room.dart';
 
 class AddPropertyDialog extends StatefulWidget {
   final Function(House) onSave;
@@ -26,16 +27,28 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
 
   void _saveHouse() {
     if (_formKey.currentState!.validate()) {
+      final int numberOfRooms = int.parse(_roomsController.text);
+      final List<Room> newRooms = List.generate(numberOfRooms, (index) {
+        return Room(
+          roomNumber: (index + 1).toString(),
+          rentAmount: 0.0,
+          rentStatus: 'Vacant',
+          startDate: DateTime.now(),
+          nextDueDate: DateTime.now(),
+          status: RoomStatus.vacant,
+        );
+      });
+
       final newHouse = House(
         id: DateTime.now().toString(),
         name: _nameController.text,
         address: _addressController.text,
-        totalRooms: int.parse(_roomsController.text),
+        totalRooms: numberOfRooms,
         imageUrl: 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/400/300',
         location: 'Unknown',
         price: '0',
         occupiedRooms: 0,
-        rooms: [],
+        rooms: newRooms,
       );
       widget.onSave(newHouse);
       Navigator.of(context).pop();
