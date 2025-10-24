@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/src/services/house_service.dart';
+import 'package:provider/provider.dart';
 
 class AddPropertyDialog extends StatefulWidget {
   const AddPropertyDialog({super.key});
@@ -24,13 +26,27 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
 
   void _saveHouse() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement save logic with the new data
-      // For example:
-      // final String houseName = _nameController.text;
-      // final String address = _addressController.text;
-      // final int numberOfRooms = int.parse(_roomsController.text);
-      // print('House Name: $houseName, Address: $address, Rooms: $numberOfRooms');
+      final houseService = Provider.of<HouseService>(context, listen: false);
+      
+      final String houseName = _nameController.text;
+      final String address = _addressController.text;
+      final int numberOfRooms = int.parse(_roomsController.text);
+      
+      houseService.addHouse(
+        name: houseName,
+        address: address,
+        numberOfRooms: numberOfRooms,
+      );
+      
       Navigator.of(context).pop();
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$houseName added successfully with $numberOfRooms rooms!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 

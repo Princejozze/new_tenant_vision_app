@@ -37,20 +37,52 @@ class HouseDetailPage extends StatelessWidget {
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16.0),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 400.0,
-                mainAxisSpacing: 16.0,
-                crossAxisSpacing: 16.0,
-                childAspectRatio: 1.2,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  return RoomCard(room: house.rooms[index]);
-                },
-                childCount: house.rooms.length,
-              ),
-            ),
+            sliver: house.rooms.isEmpty
+                ? SliverToBoxAdapter(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.room_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurface.withAlpha(102),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No Rooms Yet',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'This house has no rooms configured yet.',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400.0,
+                      mainAxisSpacing: 16.0,
+                      crossAxisSpacing: 16.0,
+                      childAspectRatio: 1.2,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (BuildContext context, int index) {
+                        if (index < house.rooms.length) {
+                          return RoomCard(room: house.rooms[index]);
+                        }
+                        return null;
+                      },
+                      childCount: house.rooms.length,
+                    ),
+                  ),
           ),
         ],
       ),

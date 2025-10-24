@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/widgets/house_card.dart';
+import 'package:myapp/src/widgets/empty_state.dart';
+import 'package:myapp/src/services/house_service.dart';
+import 'package:provider/provider.dart';
 
 class HouseList extends StatelessWidget {
   const HouseList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<House> houses = House.dummyData;
+    final houseService = Provider.of<HouseService>(context);
+    final List<House> houses = houseService.houses;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Determine the number of columns based on screen width
@@ -18,6 +22,11 @@ class HouseList extends StatelessWidget {
       crossAxisCount = 2;
     } else {
       crossAxisCount = 1;
+    }
+
+    // Show empty state if no houses
+    if (houses.isEmpty) {
+      return const EmptyState();
     }
 
     // Adjust aspect ratio for better card proportions

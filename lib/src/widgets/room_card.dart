@@ -9,245 +9,318 @@ class RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        side: BorderSide(color: Colors.grey.shade300, width: 1),
-      ),
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CardHeader(room: room),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _CardContent(room: room),
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    // Determine status badge properties
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+    Widget primaryActionButton;
+    Widget? dueDateBar;
+    List<PopupMenuEntry<String>> dropdownItems = [];
+
+    switch (room.status) {
+      case RoomStatus.vacant:
+        statusColor = Colors.orange;
+        statusIcon = Icons.person_off_outlined;
+        statusText = 'Vacant';
+        primaryActionButton = ElevatedButton.icon(
+          onPressed: () {
+            _showAddTenantDialog(context);
+          },
+          icon: const Icon(Icons.person_add_alt_1),
+          label: const Text('Add Tenant'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(height: 16),
-            _CardFooter(room: room),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CardHeader extends StatelessWidget {
-  final Room room;
-
-  const _CardHeader({required this.room});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Room ${room.roomNumber}',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                room.tenantName ?? 'No tenant assigned',
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ),
-        ),
-        Row(
-          children: [
-            _StatusBadge(status: room.status),
-            IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () {},
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+        );
+        break;
+      case RoomStatus.pending:
+        statusColor = Colors.blue;
+        statusIcon = Icons.description_outlined;
+        statusText = 'Pending Agreement';
+        primaryActionButton = ElevatedButton.icon(
+          onPressed: () {
+            _showManageLeaseAgreementDialog(context);
+          },
+          icon: const Icon(Icons.assignment_outlined),
+          label: const Text('Manage Lease Agreement'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
-          ],
-        ),
-      ],
-    );
-  }
-}
+          ),
+        );
+        break;
+      case RoomStatus.occupied:
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle_outline;
+        statusText = 'Occupied';
 
-class _CardContent extends StatelessWidget {
-  final Room room;
+        // Determine Due Date Bar properties
+        Color dueBarColor;
+        String dueBarText;
+        final now = DateTime.now();
+        final difference = room.nextDueDate.difference(now).inDays;
 
-  const _CardContent({required this.room});
+        if (room.rentStatus == 'Overdue') {
+          dueBarColor = Colors.red;
+          dueBarText = 'Overdue';
+        } else if (difference <= 7 && difference >= 0) {
+          dueBarColor = Colors.grey;
+          dueBarText = 'Due in $difference days';
+        } else {
+          dueBarColor = Colors.green;
+          dueBarText = 'Payment is on track';
+        }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    if (room.status == RoomStatus.vacant) {
-      return const Center(
-          child: Text('This room is available for rent.',
-              style: TextStyle(color: Colors.grey)));
+        dueDateBar = Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+          decoration: BoxDecoration(
+            color: dueBarColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: Text(
+            dueBarText,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        );
+
+        primaryActionButton = OutlinedButton.icon(
+          onPressed: () {
+            _showPaymentHistoryDialog(context);
+          },
+          icon: const Icon(Icons.history),
+          label: const Text('Payment History'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colorScheme.primary,
+            side: BorderSide(color: colorScheme.primary),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+
+        dropdownItems = [
+          const PopupMenuItem<String>(
+            value: 'edit_tenant',
+            child: Text('Edit Tenant'),
+          ),
+          const PopupMenuItem<String>(
+            value: 'vacate_room',
+            child: Text('Vacate Room'),
+          ),
+        ];
+        break;
     }
 
-    return SingleChildScrollView(
+    return Card(
+      margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.attach_money, color: Colors.grey.shade600, size: 20),
-              const SizedBox(width: 8),
-              Text('\$${NumberFormat('#,##0').format(room.rentAmount)}',
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text('TZS / month',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: Colors.grey.shade600),
-                    overflow: TextOverflow.ellipsis,
+          if (dueDateBar != null) dueDateBar,
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Room ${room.roomNumber}',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(statusIcon, color: Colors.white, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                statusText,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (dropdownItems.isNotEmpty)
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'edit_tenant') {
+                            _showEditTenantDialog(context);
+                          } else if (value == 'vacate_room') {
+                            _showVacateRoomConfirmationDialog(context);
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => dropdownItems,
+                      ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  room.tenantName ?? 'No tenant assigned',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[700],
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(room.rentAmount)} TZS / month',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: primaryActionButton,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          _InfoRow(
-              icon: Icons.calendar_today,
-              text: 'Start Date: ${DateFormat.yMMMd().format(room.startDate)}'),
-          const SizedBox(height: 8),
-          _InfoRow(
-              icon: Icons.schedule,
-              text:
-                  'Next Due: ${DateFormat.yMMMd().format(room.nextDueDate)}'),
-          const SizedBox(height: 16),
-          _PaymentStatusBadge(status: room.rentStatus),
         ],
       ),
     );
   }
-}
 
-class _CardFooter extends StatelessWidget {
-  final Room room;
-
-  const _CardFooter({required this.room});
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () {
-        // TODO: Implement manage room functionality
-      },
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 48),
-      ),
-      child: const Text('Manage Room'),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final RoomStatus status;
-
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color backgroundColor;
-    Color textColor;
-    IconData icon;
-
-    switch (status) {
-      case RoomStatus.occupied:
-        backgroundColor = Colors.green.shade100;
-        textColor = Colors.green.shade800;
-        icon = Icons.check_circle_outline;
-        break;
-      case RoomStatus.vacant:
-        backgroundColor = Colors.orange.shade100;
-        textColor = Colors.orange.shade800;
-        icon = Icons.person_off_outlined;
-        break;
-      case RoomStatus.pending:
-        backgroundColor = Colors.blue.shade100;
-        textColor = Colors.blue.shade800;
-        icon = Icons.article_outlined;
-        break;
-    }
-
-    return Chip(
-      avatar: Icon(icon, color: textColor, size: 16),
-      label: Text(status.toString().split('.').last),
-      backgroundColor: backgroundColor,
-      labelStyle: TextStyle(color: textColor, fontWeight: FontWeight.w500),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _InfoRow({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.grey.shade600, size: 16),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            text,
-            style: TextStyle(color: Colors.grey.shade600),
-            overflow: TextOverflow.ellipsis,
+  // Dialog methods
+  void _showAddTenantDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Tenant'),
+        content: const Text('This will be the multi-step onboarding wizard for adding a new tenant.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
           ),
-        ),
-      ],
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Implement tenant creation logic
+            },
+            child: const Text('Start Wizard'),
+          ),
+        ],
+      ),
     );
   }
-}
 
-class _PaymentStatusBadge extends StatelessWidget {
-  final String status;
+  void _showManageLeaseAgreementDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Manage Lease Agreement'),
+        content: const Text('This dialog will handle lease document management, including downloading and uploading signed copies.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Implement lease agreement management
+            },
+            child: const Text('Manage'),
+          ),
+        ],
+      ),
+    );
+  }
 
-  const _PaymentStatusBadge({required this.status});
+  void _showPaymentHistoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Payment History'),
+        content: const Text('This dialog will list all past payments for this tenant.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    Color backgroundColor;
-    Color textColor;
-    String text;
+  void _showEditTenantDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Tenant'),
+        content: const Text('This dialog will allow editing tenant details.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Implement tenant editing logic
+            },
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    switch (status) {
-      case 'Overdue':
-        backgroundColor = Colors.red.shade100;
-        textColor = Colors.red.shade800;
-        text = 'Overdue by 31 months';
-        break;
-      case 'Due Today':
-        backgroundColor = Colors.grey.shade300;
-        textColor = Colors.grey.shade800;
-        text = 'Due in 5 days';
-        break;
-      default:
-        backgroundColor = Colors.green.shade100;
-        textColor = Colors.green.shade800;
-        text = 'Payment is on track';
-    }
-
-    return Chip(
-      label: Text(text),
-      backgroundColor: backgroundColor,
-      labelStyle: TextStyle(color: textColor, fontWeight: FontWeight.w500),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+  void _showVacateRoomConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Vacate Room'),
+        content: const Text('Are you sure you want to vacate this room? This action will remove the tenant and change the room status to vacant.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Implement room vacation logic
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Vacate Room'),
+          ),
+        ],
+      ),
     );
   }
 }
