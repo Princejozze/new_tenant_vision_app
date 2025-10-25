@@ -1,5 +1,11 @@
+
+import 'package:json_annotation/json_annotation.dart';
+
+part 'room.g.dart';
+
 enum RoomStatus { occupied, vacant, pending }
 
+@JsonSerializable()
 class Room {
   final String roomNumber;
   final String? tenantName;
@@ -7,6 +13,7 @@ class Room {
   final String rentStatus;
   final DateTime startDate;
   final DateTime nextDueDate;
+  @JsonKey(defaultValue: RoomStatus.vacant)
   final RoomStatus status;
 
   Room({
@@ -19,51 +26,7 @@ class Room {
     required this.status,
   });
 
-  static List<Room> dummyData = [
-    Room(
-      roomNumber: '1',
-      tenantName: 'Aisha Mwinyi',
-      rentAmount: 1200,
-      rentStatus: 'Overdue',
-      startDate: DateTime(2023, 1, 15),
-      nextDueDate: DateTime(2024, 7, 15),
-      status: RoomStatus.occupied,
-    ),
-    Room(
-      roomNumber: '2',
-      tenantName: 'John Doe',
-      rentAmount: 1200,
-      rentStatus: 'Due Today',
-      startDate: DateTime(2023, 2, 1),
-      nextDueDate: DateTime.now(),
-      status: RoomStatus.occupied,
-    ),
-    Room(
-      roomNumber: '3',
-      tenantName: 'Jane Smith',
-      rentAmount: 1200,
-      rentStatus: 'Paid',
-      startDate: DateTime(2023, 3, 20),
-      nextDueDate: DateTime(2024, 8, 20),
-      status: RoomStatus.occupied,
-    ),
-    Room(
-      roomNumber: '4',
-      tenantName: null,
-      rentAmount: 1200,
-      rentStatus: 'Paid',
-      startDate: DateTime(2023, 3, 20),
-      nextDueDate: DateTime(2024, 8, 20),
-      status: RoomStatus.vacant,
-    ),
-     Room(
-      roomNumber: '5',
-      tenantName: null,
-      rentAmount: 1200,
-      rentStatus: 'Paid',
-      startDate: DateTime(2025, 10, 15),
-      nextDueDate: DateTime(2025, 11, 15),
-      status: RoomStatus.pending,
-    ),
-  ];
+  factory Room.fromJson(Map<String, dynamic> json) => _$RoomFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RoomToJson(this);
 }

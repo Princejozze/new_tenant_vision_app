@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/src/navigation/router.dart';
+import 'package:myapp/src/providers/app_data_provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => AppDataProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -77,10 +81,10 @@ class MyApp extends StatelessWidget {
         foregroundColor: Colors.white,
         titleTextStyle: GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
+       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.black,
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          backgroundColor: ColorScheme.fromSeed(seedColor: primarySeedColor, brightness: Brightness.dark).primaryContainer,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
