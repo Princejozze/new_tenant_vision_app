@@ -38,10 +38,14 @@ class HouseService extends ChangeNotifier {
         }
         notifyListeners();
       } else {
-        print('No saved houses data found');
+        print('No saved houses data found - starting with empty list');
+        _houses = [];
+        notifyListeners();
       }
     } catch (e) {
       print('Error loading houses: $e');
+      _houses = [];
+      notifyListeners();
     }
   }
 
