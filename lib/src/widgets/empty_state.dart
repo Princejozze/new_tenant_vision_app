@@ -1,7 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/src/widgets/add_property_dialog.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({super.key});
+
+  void _showAddPropertyDialog(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    if (isMobile) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => const AddPropertyDialog(),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => const AddPropertyDialog(),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +42,7 @@ class EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () => _showAddPropertyDialog(context),
             icon: const Icon(Icons.add),
             label: const Text('Add New House'),
             style: ElevatedButton.styleFrom(

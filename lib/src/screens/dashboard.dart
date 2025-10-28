@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:myapp/src/widgets/house_list.dart';
 import 'package:myapp/src/widgets/add_property_dialog.dart';
 import 'package:myapp/src/widgets/responsive_layout.dart';
+import 'package:myapp/src/widgets/tenant_search_dialog.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -22,6 +23,14 @@ class DashboardScreen extends StatelessWidget {
     }
   }
 
+  void _showTenantSearchDialog(BuildContext context) {
+    print('Search button pressed - opening dialog');
+    showDialog(
+      context: context,
+      builder: (context) => const TenantSearchDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mobileBody = Scaffold(
@@ -30,9 +39,7 @@ class DashboardScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search functionality
-            },
+            onPressed: () => _showTenantSearchDialog(context),
           ),
           IconButton(
             icon: const Icon(Icons.add),
@@ -40,7 +47,7 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const Expanded(child: HouseList()),
+      body: const HouseList(),
     );
 
     final desktopBody = Scaffold(
@@ -52,12 +59,25 @@ class DashboardScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Find Tenant & Add Payment',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
+                  child: InkWell(
+                    onTap: () => _showTenantSearchDialog(context),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Theme.of(context).colorScheme.outline),
                         borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Find Tenant & Add Payment',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

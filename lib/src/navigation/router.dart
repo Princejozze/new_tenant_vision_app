@@ -12,7 +12,7 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/',
       builder: (BuildContext context, GoRouterState state) {
-        return const ScaffoldWithNavigation(child: DashboardScreen());
+        return ScaffoldWithNavigation();
       },
       routes: <RouteBase>[
         GoRoute(
@@ -27,17 +27,15 @@ final GoRouter router = GoRouter(
             // Wait a moment for houses to load if they're not available yet
             if (houseService.houses.isEmpty) {
               print('No houses found, waiting for initialization...');
-              return ScaffoldWithNavigation(
-                child: Scaffold(
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text('Loading houses...'),
-                      ],
-                    ),
+              return const Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Loading houses...'),
+                    ],
                   ),
                 ),
               );
@@ -46,39 +44,37 @@ final GoRouter router = GoRouter(
             final house = houseService.getHouseById(houseId);
             if (house != null) {
               print('Found house: ${house.name} with ${house.rooms.length} rooms');
-              return ScaffoldWithNavigation(child: HouseDetailPage(house: house));
+              return HouseDetailPage(houseId: houseId);
             } else {
               print('House not found with ID: $houseId');
               // If house is not found, show error page
-              return ScaffoldWithNavigation(
-                child: Scaffold(
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.red,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'House Not Found',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'The house with ID "$houseId" could not be found.',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => context.go('/'),
-                          child: const Text('Back to Dashboard'),
-                        ),
-                      ],
-                    ),
+              return Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'House Not Found',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'The house with ID "$houseId" could not be found.',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () => context.go('/'),
+                        child: const Text('Back to Dashboard'),
+                      ),
+                    ],
                   ),
                 ),
               );

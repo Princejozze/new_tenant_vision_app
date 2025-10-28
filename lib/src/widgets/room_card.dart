@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/src/models/room.dart';
+import 'package:myapp/src/models/tenant.dart';
+import 'package:myapp/src/widgets/new_tenant_onboarding_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:myapp/src/screens/tenant_history_screen.dart';
 
-class RoomCard extends StatelessWidget {
+class RoomCard extends StatefulWidget {
   final Room room;
+  final Function(Room) onRoomUpdated;
 
-  const RoomCard({super.key, required this.room});
+  const RoomCard({
+    super.key, 
+    required this.room,
+    required this.onRoomUpdated,
+  });
 
   @override
+  State<RoomCard> createState() => _RoomCardState();
+}
+
+class _RoomCardState extends State<RoomCard> {
+  @override
   Widget build(BuildContext context) {
+    final room = widget.room; // Get the current room data
+    print('RoomCard rebuilding for Room ${room.roomNumber} - Status: ${room.status}, Tenant: ${room.tenantName}');
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     // Determine status badge properties
@@ -22,7 +39,7 @@ class RoomCard extends StatelessWidget {
     switch (room.status) {
       case RoomStatus.vacant:
         statusColor = Colors.orange;
-        statusIcon = Icons.person_off_outlined;
+        statusIcon = Icons.person_add_alt_1;
         statusText = 'Vacant';
         primaryActionButton = ElevatedButton.icon(
           onPressed: () {
@@ -38,7 +55,21 @@ class RoomCard extends StatelessWidget {
             ),
           ),
         );
+        
+        dropdownItems = [
+          const PopupMenuItem<String>(
+            value: 'add_tenant',
+            child: Row(
+              children: [
+                Icon(Icons.person_add, size: 20),
+                SizedBox(width: 8),
+                Text('Add Tenant'),
+              ],
+            ),
+          ),
+        ];
         break;
+        
       case RoomStatus.pending:
         statusColor = Colors.blue;
         statusIcon = Icons.description_outlined;
@@ -58,26 +89,33 @@ class RoomCard extends StatelessWidget {
           ),
         );
         break;
+        
       case RoomStatus.occupied:
         statusColor = Colors.green;
         statusIcon = Icons.check_circle_outline;
         statusText = 'Occupied';
 
-        // Determine Due Date Bar properties
+        // Determine Due Date Bar properties based on payment status
         Color dueBarColor;
         String dueBarText;
-        final now = DateTime.now();
-        final difference = room.nextDueDate.difference(now).inDays;
+        IconData dueBarIcon;
 
-        if (room.rentStatus == 'Overdue') {
-          dueBarColor = Colors.red;
-          dueBarText = 'Overdue';
-        } else if (difference <= 7 && difference >= 0) {
+        // Check if no payment has been made
+        if (room.tenant!.totalPaid == 0) {
+          // Grey for "Add payment" reminder when no payment made yet
           dueBarColor = Colors.grey;
-          dueBarText = 'Due in $difference days';
+          dueBarText = room.paymentStatus;
+          dueBarIcon = Icons.payment;
+        } else if (room.isOverdue) {
+          // Red for overdue
+          dueBarColor = Colors.red;
+          dueBarText = room.paymentStatus;
+          dueBarIcon = Icons.calendar_today;
         } else {
-          dueBarColor = Colors.green;
-          dueBarText = 'Payment is on track';
+          // Blue for payment on track
+          dueBarColor = Colors.blue;
+          dueBarText = room.paymentStatus;
+          dueBarIcon = Icons.check_circle;
         }
 
         dueDateBar = Container(
@@ -87,13 +125,19 @@ class RoomCard extends StatelessWidget {
             color: dueBarColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           ),
-          child: Text(
-            dueBarText,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(dueBarIcon, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                dueBarText,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
           ),
         );
 
@@ -115,11 +159,23 @@ class RoomCard extends StatelessWidget {
         dropdownItems = [
           const PopupMenuItem<String>(
             value: 'edit_tenant',
-            child: Text('Edit Tenant'),
+            child: Row(
+              children: [
+                Icon(Icons.edit, size: 20),
+                SizedBox(width: 8),
+                Text('Edit Tenant'),
+              ],
+            ),
           ),
           const PopupMenuItem<String>(
             value: 'vacate_room',
-            child: Text('Vacate Room'),
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Vacate Room', style: TextStyle(color: Colors.red)),
+              ],
+            ),
           ),
         ];
         break;
@@ -127,9 +183,11 @@ class RoomCard extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           if (dueDateBar != null) dueDateBar,
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -171,33 +229,65 @@ class RoomCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (dropdownItems.isNotEmpty)
-                      PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit_tenant') {
-                            _showEditTenantDialog(context);
-                          } else if (value == 'vacate_room') {
-                            _showVacateRoomConfirmationDialog(context);
-                          }
-                        },
-                        itemBuilder: (BuildContext context) => dropdownItems,
-                      ),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'add_tenant') {
+                          _showAddTenantDialog(context);
+                        } else if (value == 'edit_tenant') {
+                          _showEditTenantDialog(context);
+                        } else if (value == 'vacate_room') {
+                          _showVacateRoomConfirmationDialog(context);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => dropdownItems,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  room.tenantName ?? 'No tenant assigned',
+                  room.tenantName,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.grey[700],
                       ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(room.rentAmount)} TZS / month',
+                  '${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(room.currentRentAmount)} TZS / month',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
+                
+                // Show dates for occupied rooms
+                if (room.status == RoomStatus.occupied && room.tenant != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Start Date: ${DateFormat('MMM dd, yyyy').format(room.tenant!.startDate)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Next Due: ${DateFormat('MMM dd, yyyy').format(room.currentNextDueDate)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
+                
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -207,30 +297,25 @@ class RoomCard extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
 
   // Dialog methods
   void _showAddTenantDialog(BuildContext context) {
+    print('Opening add tenant dialog for room ${widget.room.roomNumber}');
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Tenant'),
-        content: const Text('This will be the multi-step onboarding wizard for adding a new tenant.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implement tenant creation logic
-            },
-            child: const Text('Start Wizard'),
-          ),
-        ],
+      builder: (context) => NewTenantOnboardingDialog(
+        room: widget.room,
+        onTenantCreated: (tenant) {
+          print('Tenant created callback received: ${tenant.fullName}');
+          final updatedRoom = widget.room.addTenant(tenant);
+          print('Updated room status: ${updatedRoom.status}');
+          print('Updated room tenant: ${updatedRoom.tenantName}');
+          widget.onRoomUpdated(updatedRoom);
+        },
       ),
     );
   }
@@ -259,27 +344,41 @@ class RoomCard extends StatelessWidget {
   }
 
   void _showPaymentHistoryDialog(BuildContext context) {
+    if (widget.room.tenant == null) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Payment History'),
-        content: const Text('This dialog will list all past payments for this tenant.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditTenantDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Tenant'),
-        content: const Text('This dialog will allow editing tenant details.'),
+        title: Text('Payment History - ${widget.room.tenant!.fullName}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: widget.room.tenant!.payments.isEmpty
+              ? const Center(
+                  child: Text('No payments recorded yet'),
+                )
+              : ListView.builder(
+                  itemCount: widget.room.tenant!.payments.length,
+                  itemBuilder: (context, index) {
+                    final payment = widget.room.tenant!.payments[index];
+                    return ListTile(
+                      leading: const Icon(Icons.payment),
+                      title: Text('${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(payment.amount)} TZS'),
+                      subtitle: Text(DateFormat('MMM dd, yyyy').format(payment.date)),
+                      trailing: payment.notes != null 
+                          ? IconButton(
+                              icon: const Icon(Icons.info_outline),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(payment.notes!)),
+                                );
+                              },
+                            )
+                          : null,
+                    );
+                  },
+                ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -288,21 +387,45 @@ class RoomCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: Implement tenant editing logic
+              _showAddPaymentDialog(context);
             },
-            child: const Text('Save Changes'),
+            child: const Text('Add Payment'),
           ),
         ],
       ),
     );
   }
 
-  void _showVacateRoomConfirmationDialog(BuildContext context) {
+  void _showAddPaymentDialog(BuildContext context) {
+    final amountController = TextEditingController();
+    final notesController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Vacate Room'),
-        content: const Text('Are you sure you want to vacate this room? This action will remove the tenant and change the room status to vacant.'),
+        title: const Text('Add Payment'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Amount (TZS)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes (Optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -310,8 +433,121 @@ class RoomCard extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
+              final amount = double.tryParse(amountController.text);
+              if (amount != null && amount > 0) {
+                final payment = Payment(
+                  id: 'payment-${DateTime.now().millisecondsSinceEpoch}',
+                  amount: amount,
+                  date: DateTime.now(),
+                  notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                );
+                
+                final updatedRoom = widget.room.addPayment(payment);
+                widget.onRoomUpdated(updatedRoom);
+                Navigator.of(context).pop();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Payment of ${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(amount)} TZS recorded'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: const Text('Record Payment'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTenantDialog(BuildContext context) {
+    if (widget.room.tenant == null) return;
+    
+    print('Opening edit tenant dialog for ${widget.room.tenant!.fullName}');
+    showDialog(
+      context: context,
+      builder: (context) => NewTenantOnboardingDialog(
+        room: widget.room,
+        existingTenant: widget.room.tenant,
+        isEditMode: true,
+        onTenantCreated: (updatedTenant) {
+          print('Tenant updated callback received: ${updatedTenant.fullName}');
+          final updatedRoom = widget.room.updateTenant(updatedTenant);
+          print('Updated room status: ${updatedRoom.status}');
+          widget.onRoomUpdated(updatedRoom);
+        },
+      ),
+    );
+  }
+
+  Future<void> _saveToHistory(Tenant tenant, String roomNumber, String houseName) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJson = prefs.getString('tenant_history');
+      final List<PastTenant> history = historyJson != null
+          ? (jsonDecode(historyJson) as List)
+              .map((json) => PastTenant.fromJson(json))
+              .toList()
+          : [];
+      
+      // Add the vacated tenant to history
+      history.add(PastTenant(
+        id: 'history-${DateTime.now().millisecondsSinceEpoch}',
+        fullName: tenant.fullName,
+        property: houseName,
+        roomNumber: roomNumber,
+        moveInDate: tenant.startDate,
+        moveOutDate: DateTime.now(),
+        paymentHistory: tenant.payments.map((p) => HistoricalPayment(
+          amount: p.amount,
+          date: p.date,
+        )).toList(),
+        note: null,
+      ));
+      
+      // Save back to SharedPreferences
+      await prefs.setString('tenant_history', jsonEncode(history));
+      print('Tenant saved to history: ${tenant.fullName}');
+    } catch (e) {
+      print('Error saving tenant to history: $e');
+    }
+  }
+
+  void _showVacateRoomConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Vacate Room'),
+        content: Text('Are you sure you want to vacate Room ${widget.room.roomNumber}? This action will remove ${widget.room.tenant!.fullName} and change the room status to vacant.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Get house information before removing tenant
+              // This is a bit of a workaround - we need house info
+              final updatedRoom = widget.room.removeTenant();
+              
+              // Save to history (need to get house name somehow)
+              // For now, we'll pass the room number and try to get house
+              await _saveToHistory(
+                widget.room.tenant!,
+                widget.room.roomNumber,
+                'Unknown House', // Will need to pass actual house name
+              );
+              
+              widget.onRoomUpdated(updatedRoom);
               Navigator.of(context).pop();
-              // TODO: Implement room vacation logic
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Room ${widget.room.roomNumber} has been vacated'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

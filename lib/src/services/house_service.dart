@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/models/room.dart';
+import 'package:myapp/src/models/tenant.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -87,6 +88,41 @@ class HouseService extends ChangeNotifier {
     _saveHouses(); // Save to local storage
   }
 
+  void updateRoomInHouse(String houseId, Room updatedRoom, int roomIndex) {
+    final houseIndex = _houses.indexWhere((h) => h.id == houseId);
+    if (houseIndex != -1) {
+      final house = _houses[houseIndex];
+      final updatedRooms = List<Room>.from(house.rooms);
+      
+      if (roomIndex < updatedRooms.length) {
+        updatedRooms[roomIndex] = updatedRoom;
+        
+        // Update occupied rooms count
+        final occupiedCount = updatedRooms.where((room) => room.status == RoomStatus.occupied).length;
+        
+        final updatedHouse = House(
+          id: house.id,
+          name: house.name,
+          location: house.location,
+          price: house.price,
+          imageUrl: house.imageUrl,
+          address: house.address,
+          totalRooms: house.totalRooms,
+          occupiedRooms: occupiedCount,
+          rooms: updatedRooms,
+        );
+        
+        _houses[houseIndex] = updatedHouse;
+        print('About to notify listeners for room update');
+        notifyListeners();
+        print('Listeners notified - room ${updatedRoom.roomNumber} status: ${updatedRoom.status}');
+        _saveHouses();
+        
+        print('Updated room ${updatedRoom.roomNumber} in house ${house.name}');
+      }
+    }
+  }
+
   String _extractLocationFromAddress(String address) {
     // Extract city and state from address
     final parts = address.split(',');
@@ -121,14 +157,14 @@ class HouseService extends ChangeNotifier {
     for (int i = 1; i <= numberOfRooms; i++) {
       final room = Room(
         roomNumber: i.toString(),
-        rentAmount: 1200.0,
+        rentAmount: 0.0, // Vacant rooms start with $0 rent
         rentStatus: 'Vacant',
         startDate: DateTime.now(),
         nextDueDate: DateTime.now(),
         status: RoomStatus.vacant,
       );
       rooms.add(room);
-      print('Created room ${room.roomNumber} with status ${room.status}');
+      print('Created room ${room.roomNumber} with status ${room.status} and rent ${room.rentAmount}');
     }
     print('Generated ${rooms.length} rooms successfully');
     return rooms;
@@ -166,7 +202,7 @@ class HouseService extends ChangeNotifier {
   Map<String, dynamic> _roomToJson(Room room) {
     return {
       'roomNumber': room.roomNumber,
-      'tenantName': room.tenantName,
+      'tenant': room.tenant?.toJson(),
       'rentAmount': room.rentAmount,
       'rentStatus': room.rentStatus,
       'startDate': room.startDate.toIso8601String(),
@@ -178,7 +214,7 @@ class HouseService extends ChangeNotifier {
   Room _roomFromJson(Map<String, dynamic> json) {
     return Room(
       roomNumber: json['roomNumber'],
-      tenantName: json['tenantName'],
+      tenant: json['tenant'] != null ? Tenant.fromJson(json['tenant']) : null,
       rentAmount: json['rentAmount'].toDouble(),
       rentStatus: json['rentStatus'],
       startDate: DateTime.parse(json['startDate']),
