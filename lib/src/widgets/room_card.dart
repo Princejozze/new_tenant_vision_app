@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:myapp/src/widgets/new_tenant_onboarding_dialog.dart';
+import 'package:myapp/src/services/receipt_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:myapp/src/screens/tenant_history_screen.dart';
@@ -432,7 +433,7 @@ class _RoomCardState extends State<RoomCard> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final amount = double.tryParse(amountController.text);
               if (amount != null && amount > 0) {
                 final payment = Payment(
@@ -446,12 +447,37 @@ class _RoomCardState extends State<RoomCard> {
                 widget.onRoomUpdated(updatedRoom);
                 Navigator.of(context).pop();
                 
+                // Show payment recorded message
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Payment of ${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(amount)} TZS recorded'),
+                    content: Text('Payment of ${NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0).format(amount)} recorded'),
                     backgroundColor: Colors.green,
                   ),
                 );
+                
+                // Automatically download receipt
+                if (widget.room.tenant != null) {
+                  try {
+                    final success = await ReceiptService.downloadReceipt(
+                      payment: payment,
+                      tenant: widget.room.tenant!,
+                      room: widget.room,
+                      propertyName: 'Property', // You might want to get this from context
+                    );
+                    
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Receipt automatically downloaded!'),
+                          backgroundColor: Colors.blue,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    // Silent fail for automatic download
+                    debugPrint('Auto receipt download failed: $e');
+                  }
+                }
               }
             },
             child: const Text('Record Payment'),

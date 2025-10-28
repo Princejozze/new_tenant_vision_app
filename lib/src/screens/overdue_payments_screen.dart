@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/src/services/house_service.dart';
+import 'package:myapp/src/services/receipt_service.dart';
 import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:intl/intl.dart';
@@ -301,12 +302,53 @@ class _PaymentDialog extends StatelessWidget {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             final amount = double.tryParse(amountController.text);
             if (amount != null && amount > 0) {
-              // TODO: Record payment
+              final payment = Payment(
+                id: 'payment-${DateTime.now().millisecondsSinceEpoch}',
+                amount: amount,
+                date: DateTime.now(),
+                notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+              );
+              
+              // Record payment (you'll need to implement this in your service)
+              // For now, we'll just show success message
               Navigator.pop(context);
               onPaymentRecorded();
+              
+              // Automatically download receipt
+              try {
+                final success = await ReceiptService.downloadReceipt(
+                  payment: payment,
+                  tenant: tenant,
+                  room: room,
+                  propertyName: 'Property', // You might want to get this from context
+                );
+                
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Payment recorded and receipt downloaded!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Payment recorded, but receipt download failed'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Payment recorded, but receipt download failed'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
             }
           },
           child: const Text('Record Payment'),

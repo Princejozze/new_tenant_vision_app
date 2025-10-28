@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import '../widgets/payment_row_widget.dart';
+import '../models/tenant.dart';
+import '../models/room.dart';
 
 class TenantHistoryScreen extends StatelessWidget {
   const TenantHistoryScreen({super.key});
@@ -104,21 +107,41 @@ class TenantHistoryScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            ...tenant.paymentHistory.map((payment) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        DateFormat('MMM dd, yyyy').format(payment.date),
-                                      ),
-                                      Text(
-                                        NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0).format(payment.amount),
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                )),
+                            ...tenant.paymentHistory.map((payment) {
+                              // Convert HistoricalPayment to Payment for the widget
+                              final paymentObj = Payment(
+                                id: 'hist_${payment.date.millisecondsSinceEpoch}',
+                                amount: payment.amount,
+                                date: payment.date,
+                                notes: null,
+                              );
+                              
+                              // Create a dummy tenant and room for the widget
+                              final dummyTenant = Tenant(
+                                id: tenant.id,
+                                firstName: tenant.fullName.split(' ').first,
+                                lastName: tenant.fullName.split(' ').skip(1).join(' '),
+                                monthlyRent: 0,
+                                startDate: tenant.moveInDate,
+                              );
+                              
+                              final dummyRoom = Room(
+                                roomNumber: tenant.roomNumber,
+                                status: RoomStatus.occupied,
+                                tenant: dummyTenant,
+                                rentAmount: 0,
+                                rentStatus: 'Paid',
+                                startDate: tenant.moveInDate,
+                                nextDueDate: tenant.moveOutDate,
+                              );
+                              
+                              return PaymentRowWidget(
+                                payment: paymentObj,
+                                tenant: dummyTenant,
+                                room: dummyRoom,
+                                propertyName: tenant.property,
+                              );
+                            }),
                           ] else
                             const Text(
                               'No payment history available',

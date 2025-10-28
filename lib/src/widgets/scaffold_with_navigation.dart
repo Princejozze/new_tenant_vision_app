@@ -4,7 +4,7 @@ import 'package:myapp/src/screens/dashboard.dart';
 import 'package:myapp/src/screens/upcoming_payments_screen.dart';
 import 'package:myapp/src/screens/reminders_screen.dart';
 import 'package:myapp/src/screens/overdue_payments_screen.dart';
-import 'package:myapp/src/screens/tenant_history_screen.dart';
+import 'package:myapp/src/screens/payment_history_screen.dart';
 
 class ScaffoldWithNavigation extends StatefulWidget {
   const ScaffoldWithNavigation({super.key});
@@ -21,7 +21,7 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
     UpcomingPaymentsScreen(),
     RemindersScreen(),
     OverduePaymentsScreen(),
-    TenantHistoryScreen(),
+    PaymentHistoryScreen(),
   ];
 
   @override
@@ -80,8 +80,8 @@ class _MobileScaffold extends StatelessWidget {
             label: 'Overdue',
           ),
           NavigationDestination(
-            icon: Icon(Icons.history),
-            label: 'History',
+            icon: Icon(Icons.receipt_long),
+            label: 'Payments',
           ),
         ],
       ),
@@ -127,8 +127,8 @@ class _DesktopScaffold extends StatelessWidget {
                 label: Text('Overdue'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.history),
-                label: Text('History'),
+                icon: Icon(Icons.receipt_long),
+                label: Text('Payments'),
               ),
             ],
           ),
@@ -201,8 +201,8 @@ class _ScaffoldWithBottomNavBarState extends State<ScaffoldWithBottomNavBar> {
             label: 'Overdue',
           ),
           NavigationDestination(
-            icon: Icon(Icons.history),
-            label: 'History',
+            icon: Icon(Icons.receipt_long),
+            label: 'Payments',
           ),
         ],
       ),

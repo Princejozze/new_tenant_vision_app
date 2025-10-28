@@ -228,12 +228,14 @@ class Payment {
   final double amount;
   final DateTime date;
   final String? notes;
+  final String? receiptPath; // Path to saved receipt file
 
   Payment({
     required this.id,
     required this.amount,
     required this.date,
     this.notes,
+    this.receiptPath,
   });
 
   Map<String, dynamic> toJson() {
@@ -242,6 +244,7 @@ class Payment {
       'amount': amount,
       'date': date.toIso8601String(),
       'notes': notes,
+      'receiptPath': receiptPath,
     };
   }
 
@@ -251,6 +254,7 @@ class Payment {
       amount: json['amount'].toDouble(),
       date: DateTime.parse(json['date']),
       notes: json['notes'],
+      receiptPath: json['receiptPath'],
     );
   }
 }
