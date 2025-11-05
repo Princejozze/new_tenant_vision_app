@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:myapp/src/screens/dashboard.dart';
+import 'package:myapp/src/screens/properties_screen.dart';
 import 'package:myapp/src/screens/upcoming_payments_screen.dart';
 import 'package:myapp/src/screens/reminders_screen.dart';
 import 'package:myapp/src/screens/overdue_payments_screen.dart';
@@ -14,18 +15,22 @@ class ScaffoldWithNavigation extends StatefulWidget {
 }
 
 class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Dashboard is at index 0
 
   final List<Widget> _screens = const [
-    DashboardScreen(),
-    UpcomingPaymentsScreen(),
-    RemindersScreen(),
-    OverduePaymentsScreen(),
-    PaymentHistoryScreen(),
+    DashboardScreen(),           // 0 - Home
+    PropertiesScreen(),          // 1 - Properties
+    UpcomingPaymentsScreen(),    // 2 - Upcoming  
+    RemindersScreen(),           // 3 - Reminders
+    OverduePaymentsScreen(),     // 4 - Overdue
+    PaymentHistoryScreen(),      // 5 - Payments
   ];
 
   @override
   Widget build(BuildContext context) {
+    // Set the navigation callback for dashboard
+    DashboardScreen.onNavigateToTab = (index) => setState(() => _selectedIndex = index);
+    
     return LayoutBuilder(builder: (context, constraints) {
       if (constraints.maxWidth < 600) {
         return _MobileScaffold(
@@ -66,6 +71,10 @@ class _MobileScaffold extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.apartment),
+            label: 'Properties',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_today),
@@ -115,6 +124,10 @@ class _DesktopScaffold extends StatelessWidget {
                 label: Text('Home'),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.apartment),
+                label: Text('Properties'),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.calendar_today),
                 label: Text('Upcoming'),
               ),
@@ -134,137 +147,6 @@ class _DesktopScaffold extends StatelessWidget {
           ),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
-class ScaffoldWithBottomNavBar extends StatefulWidget {
-  final Widget child;
-
-  const ScaffoldWithBottomNavBar({super.key, required this.child});
-
-  @override
-  State<ScaffoldWithBottomNavBar> createState() =>
-      _ScaffoldWithBottomNavBarState();
-}
-
-class _ScaffoldWithBottomNavBarState extends State<ScaffoldWithBottomNavBar> {
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    switch (index) {
-      case 0:
-        // Home
-        break;
-      case 1:
-        // Upcoming Payments
-        break;
-      case 2:
-        // Reminders
-        break;
-      case 3:
-        // Overdue
-        break;
-      case 4:
-        // Tenant History
-        break;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_today),
-            label: 'Upcoming',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_outlined),
-            label: 'Reminders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.warning_outlined),
-            label: 'Overdue',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long),
-            label: 'Payments',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ScaffoldWithSideNavBar extends StatefulWidget {
-  final Widget child;
-
-  const ScaffoldWithSideNavBar({super.key, required this.child});
-
-  @override
-  State<ScaffoldWithSideNavBar> createState() => _ScaffoldWithSideNavBarState();
-}
-
-class _ScaffoldWithSideNavBarState extends State<ScaffoldWithSideNavBar> {
-  int _selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (int index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-              switch (index) {
-                case 0:
-                  context.go('/');
-                  break;
-                case 1:
-                  // TODO: Implement other routes
-                  break;
-                case 2:
-                  // TODO: Implement other routes
-                  break;
-              }
-            },
-            labelType: NavigationRailLabelType.all,
-            destinations: const <NavigationRailDestination>[
-              NavigationRailDestination(
-                icon: Icon(Icons.home),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.bar_chart),
-                label: Text('Reports'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings),
-                label: Text('Settings'),
-              ),
-            ],
-          ),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: widget.child,
-          ),
         ],
       ),
     );

@@ -33,7 +33,13 @@ class RoomGrid extends StatelessWidget {
       ),
       itemCount: rooms.length,
       itemBuilder: (context, index) {
-        return RoomCard(room: rooms[index]);
+        return RoomCard(
+          room: rooms[index],
+          onRoomUpdated: (updatedRoom) {
+            // Handle room updates if needed
+            print('Room updated: ${updatedRoom.roomNumber}');
+          },
+        );
       },
     );
   }

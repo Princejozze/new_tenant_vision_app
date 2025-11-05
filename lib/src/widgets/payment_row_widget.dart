@@ -43,10 +43,16 @@ class _PaymentRowWidgetState extends State<PaymentRowWidget> {
           SnackBar(
             content: Text(
               success 
-                ? 'Receipt downloaded successfully!' 
-                : 'Failed to download receipt. Please try again.',
+                ? 'Receipt downloaded successfully! Check your Downloads folder or Documents.' 
+                : 'Failed to download receipt. Please check permissions and try again.',
             ),
             backgroundColor: success ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 4),
+            action: success ? null : SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _downloadReceipt(),
+            ),
           ),
         );
       }
@@ -54,8 +60,14 @@ class _PaymentRowWidgetState extends State<PaymentRowWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error downloading receipt: $e'),
+            content: Text('Error downloading receipt: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _downloadReceipt(),
+            ),
           ),
         );
       }

@@ -52,7 +52,7 @@ class HouseDetailPage extends StatelessWidget {
                 leading: TextButton.icon(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to Dashboard'),
+                  label: const Text('Back'),
                   style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.onSurface,
                   ),

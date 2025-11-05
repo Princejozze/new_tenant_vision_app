@@ -123,6 +123,42 @@ class HouseService extends ChangeNotifier {
     }
   }
 
+  void updateHouse({
+    required String houseId,
+    required String name,
+    required String address,
+  }) {
+    final houseIndex = _houses.indexWhere((h) => h.id == houseId);
+    if (houseIndex != -1) {
+      final house = _houses[houseIndex];
+      
+      final updatedHouse = House(
+        id: house.id,
+        name: name,
+        location: _extractLocationFromAddress(address),
+        price: house.price,
+        imageUrl: house.imageUrl,
+        address: address,
+        totalRooms: house.totalRooms,
+        occupiedRooms: house.occupiedRooms,
+        rooms: house.rooms,
+      );
+      
+      _houses[houseIndex] = updatedHouse;
+      notifyListeners();
+      _saveHouses();
+      
+      print('Updated house ${updatedHouse.name}');
+    }
+  }
+
+  void deleteHouse(String houseId) {
+    _houses.removeWhere((house) => house.id == houseId);
+    notifyListeners();
+    _saveHouses();
+    print('Deleted house with ID: $houseId');
+  }
+
   String _extractLocationFromAddress(String address) {
     // Extract city and state from address
     final parts = address.split(',');
@@ -139,13 +175,16 @@ class HouseService extends ChangeNotifier {
   }
 
   String _getRandomHouseImage() {
-    // Return a random house image from Unsplash
+    // Return a random house image from Unsplash with more reliable URLs
     final images = [
-      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?q=80&w=2940&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=2874&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2853&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1605146769289-440113cc3d00?q=80&w=2870&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1600607687644-c7171b42498b?q=80&w=2940&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=600&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&h=600&fit=crop&crop=center',
     ];
     final randomIndex = DateTime.now().millisecondsSinceEpoch % images.length;
     return images[randomIndex];

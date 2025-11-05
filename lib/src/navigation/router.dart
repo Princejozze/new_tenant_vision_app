@@ -8,12 +8,17 @@ import 'package:myapp/src/services/house_service.dart';
 import 'package:provider/provider.dart';
 
 final GoRouter router = GoRouter(
+  initialLocation: '/dashboard',
   routes: <RouteBase>[
     GoRoute(
-      path: '/',
+      path: '/dashboard',
       builder: (BuildContext context, GoRouterState state) {
         return ScaffoldWithNavigation();
       },
+    ),
+    GoRoute(
+      path: '/',
+      redirect: (context, state) => '/dashboard',
       routes: <RouteBase>[
         GoRoute(
           path: 'house/:houseId',
@@ -71,7 +76,7 @@ final GoRouter router = GoRouter(
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed: () => context.go('/'),
+                        onPressed: () => context.go('/dashboard'),
                         child: const Text('Back to Dashboard'),
                       ),
                     ],
