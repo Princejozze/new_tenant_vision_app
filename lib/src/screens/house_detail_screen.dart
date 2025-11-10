@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:myapp/src/models/house.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/widgets/room_card.dart';
 import 'package:myapp/src/services/house_service.dart';
@@ -35,7 +36,14 @@ class HouseDetailPage extends StatelessWidget {
                   Text('House not found'),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        // Ensure we don't end up on a blank screen when no back stack exists
+                        GoRouter.of(context).go('/dashboard');
+                      }
+                    },
                     child: const Text('Back to Dashboard'),
                   ),
                 ],
@@ -50,7 +58,13 @@ class HouseDetailPage extends StatelessWidget {
               SliverAppBar(
                 pinned: true,
                 leading: TextButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      GoRouter.of(context).go('/dashboard');
+                    }
+                  },
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Back'),
                   style: TextButton.styleFrom(

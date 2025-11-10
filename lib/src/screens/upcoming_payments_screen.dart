@@ -4,6 +4,9 @@ import 'package:myapp/src/services/house_service.dart';
 import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:intl/intl.dart';
+import 'package:myapp/src/services/sms_service.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/src/services/house_service.dart';
 
 class UpcomingPaymentsScreen extends StatelessWidget {
   const UpcomingPaymentsScreen({super.key});
@@ -48,6 +51,22 @@ class UpcomingPaymentsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Upcoming Payments'),
+        actions: [
+          IconButton(
+            tooltip: 'Notify all upcoming by SMS',
+            icon: const Icon(Icons.sms),
+            onPressed: () async {
+              final numbers = upcomingTenants
+                  .map((e) => (e['tenant'] as Tenant).phone)
+                  .whereType<String>()
+                  .where((p) => p.trim().isNotEmpty)
+                  .toList();
+              if (numbers.isEmpty) return;
+              final message = 'Reminder: Your rent is due soon. Please ensure payment before the due date to avoid penalties.';
+              await SmsService.sendGroupSms(phoneNumbers: numbers, message: message);
+            },
+          ),
+        ],
       ),
       body: upcomingTenants.isEmpty
           ? Center(
@@ -119,10 +138,118 @@ class UpcomingPaymentsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    trailing: PopupMenuButton(
+                      tooltip: 'Actions',
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'record',
+                          child: Text('Record Payment'),
+                        ),
+                        if (tenant.email != null && tenant.email!.isNotEmpty)
+                          const PopupMenuItem(
+                            value: 'email',
+                            child: Text('Notify by Email'),
+                          ),
+                        if (tenant.phone != null && tenant.phone!.isNotEmpty)
+                          const PopupMenuItem(
+                            value: 'sms',
+                            child: Text('Notify by SMS'),
+                          ),
+                      ],
+                      onSelected: (value) async {
+                        switch (value) {
+                          case 'record':
+                            _showPaymentDialog(context, tenant, room, house);
+                            break;
+                          case 'email':
+                            // Open mail client
+                            final subject = 'Rent due reminder';
+                            final body = daysUntilDue == 0
+                                ? 'Reminder: Your rent is due today. Please make payment to avoid penalties.'
+                                : 'Reminder: Your rent is due in $daysUntilDue days. Please ensure payment before the due date.';
+                            final uri = Uri(
+                              scheme: 'mailto',
+                              path: tenant.email,
+                              queryParameters: {'subject': subject, 'body': body},
+                            );
+                            await launchUrl(uri);
+                            break;
+                          case 'sms':
+                            final phone = tenant.phone;
+                            if (phone == null || phone.trim().isEmpty) return;
+                            final msg = daysUntilDue == 0
+                                ? 'Reminder: Your rent is due today. Please make payment to avoid penalties.'
+                                : 'Reminder: Your rent is due in $daysUntilDue days. Please ensure payment before the due date.';
+                            await SmsService.sendSms(phoneNumber: phone, message: msg);
+                            break;
+                        }
+                      },
+                    ),
                   ),
                 );
               },
             ),
+    );
+  }
+
+  void _showPaymentDialog(BuildContext context, Tenant tenant, Room room, dynamic house) {
+    final amountController = TextEditingController();
+    final notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Record Payment - ${tenant.fullName}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Amount (TZS)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes (Optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final amount = double.tryParse(amountController.text);
+              if (amount != null && amount > 0) {
+                final payment = Payment(
+                  id: 'payment-${DateTime.now().millisecondsSinceEpoch}',
+                  amount: amount,
+                  date: DateTime.now(),
+                  notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                );
+                final houseService = Provider.of<HouseService>(context, listen: false);
+                houseService.recordPayment(
+                  houseId: house.id,
+                  roomNumber: room.roomNumber,
+                  payment: payment,
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Record Payment'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -94,10 +94,7 @@ class DashboardScreen extends StatelessWidget {
           
           // Analytics Charts
           _buildAnalyticsSection(context, metrics),
-          const SizedBox(height: 24),
-          
-          // Properties Overview
-          _buildPropertiesOverview(context),
+          // Screen ends at Analytics per requirement (removed "Your Properties" section)
         ],
       ),
     );

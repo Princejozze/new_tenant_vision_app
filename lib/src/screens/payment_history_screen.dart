@@ -13,29 +13,44 @@ class PaymentHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final houseService = Provider.of<HouseService>(context);
     
-    // Collect all payments from all tenants
-    final allPayments = <Map<String, dynamic>>[];
-    
+    // Group all payments by tenant so each tenant appears once
+    final Map<String, Map<String, dynamic>> tenantIdToGroup = {};
+    int totalPaymentsCount = 0;
+
     for (var house in houseService.houses) {
       for (var room in house.rooms) {
         if (room.status == RoomStatus.occupied && room.tenant != null) {
           final tenant = room.tenant!;
+          final key = tenant.id;
+
+          tenantIdToGroup.putIfAbsent(key, () => {
+            'tenant': tenant,
+            'room': room,
+            'house': house.name,
+            'payments': <Payment>[],
+          });
+
           for (var payment in tenant.payments) {
-            allPayments.add({
-              'payment': payment,
-              'tenant': tenant,
-              'room': room,
-              'house': house.name,
-            });
+            (tenantIdToGroup[key]!['payments'] as List<Payment>).add(payment);
+            totalPaymentsCount++;
           }
         }
       }
     }
-    
-    // Sort by payment date (newest first)
-    allPayments.sort((a, b) => 
-      (b['payment'] as Payment).date.compareTo((a['payment'] as Payment).date)
-    );
+
+    // Sort each tenant's payments by newest first and then sort tenants by latest payment
+    final groupedPayments = tenantIdToGroup.values.toList();
+    for (final g in groupedPayments) {
+      final list = g['payments'] as List<Payment>;
+      list.sort((a, b) => b.date.compareTo(a.date));
+    }
+    groupedPayments.sort((a, b) {
+      final ap = (a['payments'] as List<Payment>);
+      final bp = (b['payments'] as List<Payment>);
+      final aLatest = ap.isNotEmpty ? ap.first.date : DateTime.fromMillisecondsSinceEpoch(0);
+      final bLatest = bp.isNotEmpty ? bp.first.date : DateTime.fromMillisecondsSinceEpoch(0);
+      return bLatest.compareTo(aLatest);
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -55,7 +70,7 @@ class PaymentHistoryScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: allPayments.isEmpty
+      body: groupedPayments.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -114,7 +129,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${allPayments.length} payments',
+                              '$totalPaymentsCount payments',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onPrimaryContainer,
                                 fontSize: 18,
@@ -126,9 +141,10 @@ class PaymentHistoryScreen extends StatelessWidget {
                       ),
                       Text(
                         NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0).format(
-                          allPayments.fold(0.0, (sum, item) => 
-                            sum + (item['payment'] as Payment).amount
-                          ),
+                          groupedPayments.fold(0.0, (sum, group) {
+                            final payments = group['payments'] as List<Payment>;
+                            return sum + payments.fold<double>(0.0, (s, p) => s + p.amount);
+                          }),
                         ),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -140,79 +156,65 @@ class PaymentHistoryScreen extends StatelessWidget {
                   ),
                 ),
                 
-                // Payments list
+                // Payments grouped by tenant (collapsible)
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: allPayments.length,
+                    itemCount: groupedPayments.length,
                     itemBuilder: (context, index) {
-                      final data = allPayments[index];
-                      final payment = data['payment'] as Payment;
+                      final data = groupedPayments[index];
                       final tenant = data['tenant'] as Tenant;
                       final room = data['room'] as Room;
                       final houseName = data['house'] as String;
+                      final payments = data['payments'] as List<Payment>;
                       
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Header with tenant info
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          tenant.fullName,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        Text(
-                                          '$houseName • Room ${room.roomNumber}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0).format(payment.amount),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              
-                              const SizedBox(height: 12),
-                              
-                              // Payment details with download button
-                              PaymentRowWidget(
-                                payment: payment,
-                                tenant: tenant,
-                                room: room,
-                                propertyName: houseName,
-                              ),
-                            ],
+                        child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            child: Icon(
+                              Icons.person,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
                           ),
+                          title: Text(
+                            tenant.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '$houseName • Room ${room.roomNumber}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: Text(
+                            NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0).format(
+                              payments.fold<double>(0.0, (s, p) => s + p.amount),
+                            ),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.green,
+                            ),
+                          ),
+                          children: [
+                            ...payments.map((payment) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: PaymentRowWidget(
+                                    payment: payment,
+                                    tenant: tenant,
+                                    room: room,
+                                    propertyName: houseName,
+                                  ),
+                                )),
+                          ],
                         ),
                       );
                     },

@@ -5,6 +5,7 @@ import 'package:myapp/src/services/receipt_service.dart';
 import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:intl/intl.dart';
+import 'package:myapp/src/services/sms_service.dart';
 
 class OverduePaymentsScreen extends StatefulWidget {
   const OverduePaymentsScreen({super.key});
@@ -64,14 +65,15 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
     // TODO: Implement email notification
   }
 
-  void _notifyBySMS(Tenant tenant, Room room) {
+  void _notifyBySMS(Tenant tenant, Room room) async {
     if (tenant.phone == null || tenant.phone!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('This tenant has no phone number')),
       );
       return;
     }
-    // TODO: Implement SMS notification
+    final msg = 'Notice: Your rent is overdue. Please pay immediately to avoid further penalties.';
+    await SmsService.sendSms(phoneNumber: tenant.phone!, message: msg);
   }
 
   void _recordPayment(Tenant tenant, Room room) {
@@ -94,6 +96,24 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Overdue Payments'),
+        actions: [
+          IconButton(
+            tooltip: 'Notify all overdue by SMS',
+            icon: const Icon(Icons.sms),
+            onPressed: _hasPhones
+                ? () async {
+                    final numbers = _overdueTenants
+                        .map((e) => (e['tenant'] as Tenant).phone)
+                        .whereType<String>()
+                        .where((p) => p.trim().isNotEmpty)
+                        .toList();
+                    if (numbers.isEmpty) return;
+                    final message = 'Notice: Your rent is overdue. Please pay immediately to avoid further penalties.';
+                    await SmsService.sendGroupSms(phoneNumbers: numbers, message: message);
+                  }
+                : null,
+          ),
+        ],
       ),
       body: _overdueTenants.isEmpty
           ? Center(
@@ -253,7 +273,16 @@ class _OverduePaymentsScreenState extends State<OverduePaymentsScreen> {
   );
 
   void _notifyAllByEmail() {}
-  void _notifyAllBySMS() {}
+  void _notifyAllBySMS() async {
+    final numbers = _overdueTenants
+        .map((e) => (e['tenant'] as Tenant).phone)
+        .whereType<String>()
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
+    if (numbers.isEmpty) return;
+    final message = 'Notice: Your rent is overdue. Please pay immediately to avoid further penalties.';
+    await SmsService.sendGroupSms(phoneNumbers: numbers, message: message);
+  }
 }
 
 class _PaymentDialog extends StatelessWidget {
@@ -312,8 +341,16 @@ class _PaymentDialog extends StatelessWidget {
                 notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
               );
               
-              // Record payment (you'll need to implement this in your service)
-              // For now, we'll just show success message
+              // Persist payment via service
+              final houseService = Provider.of<HouseService>(context, listen: false);
+              // Find this room's house id
+              final house = houseService.houses.firstWhere((h) => h.rooms.contains(room));
+              houseService.recordPayment(
+                houseId: house.id,
+                roomNumber: room.roomNumber,
+                payment: payment,
+              );
+
               Navigator.pop(context);
               onPaymentRecorded();
               

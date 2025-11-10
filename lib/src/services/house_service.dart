@@ -123,6 +123,35 @@ class HouseService extends ChangeNotifier {
     }
   }
 
+  // Record a payment for a specific room's tenant and persist
+  void recordPayment({
+    required String houseId,
+    required String roomNumber,
+    required Payment payment,
+  }) {
+    final houseIndex = _houses.indexWhere((h) => h.id == houseId);
+    if (houseIndex == -1) return;
+    final house = _houses[houseIndex];
+    final roomIndex = house.rooms.indexWhere((r) => r.roomNumber == roomNumber);
+    if (roomIndex == -1) return;
+    final room = house.rooms[roomIndex];
+    if (room.tenant == null) return;
+
+    final updatedTenant = room.tenant!.addPayment(payment);
+    final updatedRoom = Room(
+      roomNumber: room.roomNumber,
+      tenant: updatedTenant,
+      rentAmount: room.rentAmount,
+      rentStatus: room.rentStatus,
+      startDate: room.startDate,
+      nextDueDate: room.nextDueDate,
+      status: room.status,
+    );
+
+    updateRoomInHouse(houseId, updatedRoom, roomIndex);
+    _saveHouses();
+  }
+
   void updateHouse({
     required String houseId,
     required String name,

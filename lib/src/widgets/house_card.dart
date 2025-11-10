@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/services/house_service.dart';
 import 'package:myapp/src/widgets/edit_house_dialog.dart';
+import 'package:myapp/src/navigation/router.dart';
 
 class HouseCard extends StatefulWidget {
   final House house;
@@ -16,6 +17,24 @@ class HouseCard extends StatefulWidget {
 
 class _HouseCardState extends State<HouseCard> {
   bool _isHovering = false;
+  ImageProvider? _imageProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageProvider = NetworkImage(widget.house.imageUrl);
+    // Pre-cache the image to improve display reliability
+    precacheImage(_imageProvider!, context);
+  }
+
+  @override
+  void didUpdateWidget(covariant HouseCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.house.imageUrl != widget.house.imageUrl) {
+      _imageProvider = NetworkImage(widget.house.imageUrl);
+      precacheImage(_imageProvider!, context);
+    }
+  }
 
   void _handleMenuAction(String action) {
     switch (action) {
@@ -149,9 +168,52 @@ class _HouseCardState extends State<HouseCard> {
                     ],
                   ),
                 ),
-                child: Image.network(
-                  widget.house.imageUrl,
+                child: Image(
+                  image: _imageProvider!,
                   fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.medium,
+                  // Provide an error builder to ensure a visible fallback
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            colorScheme.primaryContainer.withOpacity(0.5),
+                            colorScheme.secondaryContainer.withOpacity(0.5),
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.home,
+                              size: 48,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              widget.house.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Image unavailable',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;
                     return Container(
@@ -296,9 +358,50 @@ class _HouseCardState extends State<HouseCard> {
                     const Spacer(),
                     ElevatedButton.icon(
                       onPressed: () {
-                        print('Manage House button pressed for house: ${widget.house.name} (ID: ${widget.house.id})');
-                        print('Navigating to: /house/${widget.house.id}');
-                        context.go('/house/${widget.house.id}');
+                        print('=== Manage House button pressed ===');
+                        print('House name: ${widget.house.name}');
+                        print('House ID: ${widget.house.id}');
+                        
+                        final targetPath = '/house/${widget.house.id}';
+                        print('Navigating to: $targetPath');
+                        
+                        // Show feedback that button was pressed
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Opening ${widget.house.name}...'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                        
+                        // Use GoRouter from context - most reliable method
+                        try {
+                          final goRouter = GoRouter.of(context);
+                          goRouter.push(targetPath);
+                          print('Navigation command executed successfully via GoRouter.push');
+                        } catch (e, stackTrace) {
+                          print('Navigation error with GoRouter.of(context): $e');
+                          print('Stack trace: $stackTrace');
+                          // Try router instance directly
+                          try {
+                            router.push(targetPath);
+                            print('Fallback: Navigation via router.push executed');
+                          } catch (e2) {
+                            print('Router instance also failed: $e2');
+                            // Try context.go as last resort
+                            try {
+                              context.push(targetPath);
+                              print('Last resort: context.push executed');
+                            } catch (e3) {
+                              print('All navigation methods failed: $e3');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Navigation error: $e3'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
                       },
                       icon: const Icon(Icons.arrow_forward),
                       label: const Text('Manage House'),
