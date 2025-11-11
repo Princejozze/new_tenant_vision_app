@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "34852440749",
+    "project_id": "tenant-database-dd733",
+    "storage_bucket": "tenant-database-dd733.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:34852440749:android:2f8ac1a7ab1b109cb15424",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnw_GIgPB-EzI9YlGxLvCh_MDbShXIISA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
