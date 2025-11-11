@@ -20,7 +20,7 @@ final GoRouter router = GoRouter(
   initialLocation: '/register',
   redirect: (context, state) {
     final auth = Provider.of<AuthService>(context, listen: false);
-    final isLoggingIn = state.subloc == '/login' || state.subloc == '/register';
+    final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/register';
     if (!auth.isAuthenticated && !isLoggingIn) return '/login';
     if (auth.isAuthenticated && isLoggingIn) return '/dashboard';
     return null;
