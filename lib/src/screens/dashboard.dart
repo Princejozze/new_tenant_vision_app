@@ -466,8 +466,8 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: SimpleChart(
-                title: 'Occupancy Trend',
-                data: _generateOccupancyTrend(),
+                title: 'Net Profit (12 months)',
+                data: _computeDashboardNetProfit(),
                 color: Colors.blue,
               ),
             ),
@@ -560,9 +560,29 @@ class DashboardScreen extends StatelessWidget {
     return 'Good Evening';
   }
 
-  List<double> _generateOccupancyTrend() {
-    // Generate sample occupancy trend data (last 7 days)
-    return [65, 68, 72, 75, 78, 80, 82];
+  List<double> _computeDashboardNetProfit() {
+    // Compute net profit for last 12 months using payments as income and 0 expenses for now
+    final houses = context.read<HouseService>().houses;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month - 11, 1);
+    final monthFmt = DateFormat('MMM yy');
+    final Map<String, double> map = {};
+    for (int i = 0; i < 12; i++) {
+      final dt = DateTime(start.year, start.month + i, 1);
+      map[monthFmt.format(dt)] = 0;
+    }
+    for (final h in houses) {
+      for (final r in h.rooms) {
+        final t = r.tenant;
+        if (t == null) continue;
+        for (final p in t.payments) {
+          if (p.date.isBefore(start) || p.date.isAfter(now)) continue;
+          final key = monthFmt.format(DateTime(p.date.year, p.date.month, 1));
+          map[key] = (map[key] ?? 0) + p.amount; // expenses=0
+        }
+      }
+    }
+    return map.values.toList();
   }
 
   List<double> _generateRevenueTrend() {
