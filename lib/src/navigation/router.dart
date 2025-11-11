@@ -10,6 +10,10 @@ import 'package:provider/provider.dart';
 import 'package:myapp/src/services/auth_service.dart';
 import 'package:myapp/src/screens/auth/login_screen.dart';
 import 'package:myapp/src/screens/auth/register_screen.dart';
+import 'package:myapp/src/screens/settings_screen.dart';
+import 'package:myapp/src/screens/change_profile_screen.dart';
+import 'package:myapp/src/screens/financial_screen.dart';
+import 'package:myapp/src/screens/analytics_screen.dart';
 import 'package:provider/provider.dart';
 
 final GoRouter router = GoRouter(
@@ -35,6 +39,22 @@ final GoRouter router = GoRouter(
       builder: (BuildContext context, GoRouterState state) {
         return const ScaffoldWithNavigation();
       },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/profile',
+      builder: (context, state) => const ChangeProfileScreen(),
+    ),
+    GoRoute(
+      path: '/financial',
+      builder: (context, state) => const FinancialScreen(),
+    ),
+    GoRoute(
+      path: '/analytics',
+      builder: (context, state) => const AnalyticsScreen(),
     ),
     GoRoute(
       path: '/house/:houseId',

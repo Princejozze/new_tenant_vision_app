@@ -22,7 +22,7 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
   final List<Widget> _screens = const [
     DashboardScreen(),           // 0 - Home
     PropertiesScreen(),          // 1 - Properties
-    UpcomingPaymentsScreen(),    // 2 - Upcoming  
+    UpcomingPaymentsScreen(),    // 2 - Upcoming
     RemindersScreen(),           // 3 - Reminders
     OverduePaymentsScreen(),     // 4 - Overdue
     PaymentHistoryScreen(),      // 5 - Payments
@@ -57,6 +57,10 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
 }
 
 class _MobileScaffold extends StatelessWidget {
+  void _openProfile(BuildContext context) => context.go('/profile');
+  void _openSettings(BuildContext context) => context.go('/settings');
+  void _openFinancial(BuildContext context) => context.go('/financial');
+  void _openAnalytics(BuildContext context) => context.go('/analytics');
   final VoidCallback onSignOut;
   final String displayName;
   final int selectedIndex;
@@ -78,11 +82,82 @@ class _MobileScaffold extends StatelessWidget {
         title: Text('Welcome, $displayName'),
         actions: [
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openEndDrawer(),
+          ),
+          IconButton(
+            tooltip: 'Profile',
+            icon: const Icon(Icons.account_circle),
+            onPressed: () => _openProfile(context),
+          ),
+          IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
             onPressed: onSignOut,
           )
         ],
+      ),
+      endDrawer: Drawer(
+        child: ListView(
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text(displayName),
+              accountEmail: const Text(''),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Dashboard'),
+              onTap: () { Navigator.pop(context); onIndexChanged(0); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.apartment),
+              title: const Text('Properties'),
+              onTap: () { Navigator.pop(context); onIndexChanged(1); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('Upcoming Payments'),
+              onTap: () { Navigator.pop(context); onIndexChanged(2); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Reminders'),
+              onTap: () { Navigator.pop(context); onIndexChanged(3); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.warning_outlined),
+              title: const Text('Overdue Payments'),
+              onTap: () { Navigator.pop(context); onIndexChanged(4); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long),
+              title: const Text('Payment History'),
+              onTap: () { Navigator.pop(context); onIndexChanged(5); },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Change Profile'),
+              onTap: () { Navigator.pop(context); _openProfile(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_money),
+              title: const Text('Financial'),
+              onTap: () { Navigator.pop(context); _openFinancial(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.analytics),
+              title: const Text('Analytics'),
+              onTap: () { Navigator.pop(context); _openAnalytics(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () { Navigator.pop(context); _openSettings(context); },
+            ),
+          ],
+        ),
       ),
       body: child,
       bottomNavigationBar: NavigationBar(
@@ -120,6 +195,10 @@ class _MobileScaffold extends StatelessWidget {
 }
 
 class _DesktopScaffold extends StatelessWidget {
+  void _openProfile(BuildContext context) => context.go('/profile');
+  void _openSettings(BuildContext context) => context.go('/settings');
+  void _openFinancial(BuildContext context) => context.go('/financial');
+  void _openAnalytics(BuildContext context) => context.go('/analytics');
   final VoidCallback onSignOut;
   final String displayName;
   final int selectedIndex;
@@ -140,6 +219,11 @@ class _DesktopScaffold extends StatelessWidget {
       appBar: AppBar(
         title: Text('Welcome, $displayName'),
         actions: [
+          IconButton(
+            tooltip: 'Profile',
+            icon: const Icon(Icons.account_circle),
+            onPressed: () => _openProfile(context),
+          ),
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
