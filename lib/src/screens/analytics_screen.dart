@@ -42,6 +42,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ? yearlyNet.map((e) => e.net.toDouble()).toList()
             : monthlyNet.map((e) => e.net.toDouble()).toList();
 
+        // Average monthly rent calculations
+        final avgOverall = _computeAverageRentOverall(houses);
+        final avgByProperty = _computeAverageRentByProperty(houses);
+
         final chartTitle = _yearly
             ? 'Net Profit (Last ${yearlyNet.length} Years)'
             : 'Net Profit (Last 12 Months)';
@@ -76,6 +80,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                // Rent Averages (overall & per property)
+                _rentAverages(context, avgOverall, avgByProperty),
                 const SizedBox(height: 16),
 
                 // Summary cards
@@ -273,6 +281,84 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _rentAverages(BuildContext context, double overall, Map<String, double> byProperty) {
+    final currency = NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Average Monthly Rent', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _metricChip(context, 'Overall', currency.format(overall), Icons.payments, Colors.indigo),
+                for (final entry in byProperty.entries)
+                  _metricChip(context, entry.key, currency.format(entry.value), Icons.home_work, Colors.teal),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metricChip(BuildContext context, String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 8),
+          Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+
+  double _computeAverageRentOverall(List houses) {
+    double sum = 0;
+    int count = 0;
+    for (final h in houses) {
+      for (final r in h.rooms) {
+        if (r.status.toString().contains('occupied') && r.rentAmount > 0) {
+          sum += r.rentAmount;
+          count++;
+        }
+      }
+    }
+    return count == 0 ? 0 : sum / count;
+  }
+
+  Map<String, double> _computeAverageRentByProperty(List houses) {
+    final mapSum = <String, double>{};
+    final mapCount = <String, int>{};
+    for (final h in houses) {
+      for (final r in h.rooms) {
+        if (r.status.toString().contains('occupied') && r.rentAmount > 0) {
+          mapSum[h.name] = (mapSum[h.name] ?? 0) + r.rentAmount;
+          mapCount[h.name] = (mapCount[h.name] ?? 0) + 1;
+        }
+      }
+    }
+    final result = <String, double>{};
+    for (final name in mapSum.keys) {
+      final c = mapCount[name] ?? 1;
+      result[name] = mapSum[name]! / c;
+    }
+    return result;
   }
 }
 
