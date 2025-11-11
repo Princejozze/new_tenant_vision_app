@@ -13,7 +13,7 @@ import 'package:myapp/src/screens/auth/register_screen.dart';
 import 'package:provider/provider.dart';
 
 final GoRouter router = GoRouter(
-  initialLocation: '/dashboard',
+  initialLocation: '/register',
   redirect: (context, state) {
     final auth = Provider.of<AuthService>(context, listen: false);
     final isLoggingIn = state.subloc == '/login' || state.subloc == '/register';
