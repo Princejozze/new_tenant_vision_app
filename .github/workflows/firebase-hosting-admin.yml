@@ -26,12 +26,12 @@ jobs:
         run: flutter pub get
 
       - name: Build Admin Web
-        run: flutter build web -t lib/admin/main_admin.dart -o build/web_admin
+        run: flutter build web -t lib/admin/main_admin.dart -o build/web
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TENANT_DATABASE_DD733 }}'
           projectId: tenant-database-dd733
           channelId: live
