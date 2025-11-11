@@ -1,0 +1,37 @@
+name: Deploy Admin Console to Firebase Hosting
+
+on:
+  push:
+    branches: [ feature/tenant-info-pdf-theme-toggle-image-fix, main, master ]
+    paths:
+      - 'lib/admin/**'
+      - 'firebase.json'
+      - '.firebaserc'
+      - 'pubspec.yaml'
+      - '.github/workflows/firebase-hosting-admin.yml'
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Admin Web
+        run: flutter build web -t lib/admin/main_admin.dart -o build/web_admin
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: tenant-database-dd733
+          channelId: live
