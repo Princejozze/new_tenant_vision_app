@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:myapp/src/navigation/router.dart';
 import 'package:myapp/src/services/house_service.dart';
 import 'package:myapp/src/services/theme_service.dart';
+import 'package:myapp/src/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
 
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => HouseService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, _) {

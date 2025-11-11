@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/src/services/auth_service.dart';
 import 'package:myapp/src/screens/dashboard.dart';
 import 'package:myapp/src/screens/properties_screen.dart';
 import 'package:myapp/src/screens/upcoming_payments_screen.dart';
@@ -32,17 +34,22 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
     DashboardScreen.onNavigateToTab = (index) => setState(() => _selectedIndex = index);
     
     return LayoutBuilder(builder: (context, constraints) {
+      final auth = context.watch<AuthService>();
       if (constraints.maxWidth < 600) {
         return _MobileScaffold(
           selectedIndex: _selectedIndex,
           onIndexChanged: (index) => setState(() => _selectedIndex = index),
           child: _screens[_selectedIndex],
+          onSignOut: () => context.read<AuthService>().signOut(),
+          displayName: auth.displayName ?? 'Landlord',
         );
       } else {
         return _DesktopScaffold(
           selectedIndex: _selectedIndex,
           onIndexChanged: (index) => setState(() => _selectedIndex = index),
           child: _screens[_selectedIndex],
+          onSignOut: () => context.read<AuthService>().signOut(),
+          displayName: auth.displayName ?? 'Landlord',
         );
       }
     });
@@ -50,11 +57,15 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
 }
 
 class _MobileScaffold extends StatelessWidget {
+  final VoidCallback onSignOut;
+  final String displayName;
   final int selectedIndex;
   final Function(int) onIndexChanged;
   final Widget child;
 
   const _MobileScaffold({
+    required this.onSignOut,
+    required this.displayName,
     required this.selectedIndex,
     required this.onIndexChanged,
     required this.child,
@@ -63,6 +74,16 @@ class _MobileScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Welcome, $displayName'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: onSignOut,
+          )
+        ],
+      ),
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
@@ -99,11 +120,15 @@ class _MobileScaffold extends StatelessWidget {
 }
 
 class _DesktopScaffold extends StatelessWidget {
+  final VoidCallback onSignOut;
+  final String displayName;
   final int selectedIndex;
   final Function(int) onIndexChanged;
   final Widget child;
 
   const _DesktopScaffold({
+    required this.onSignOut,
+    required this.displayName,
     required this.selectedIndex,
     required this.onIndexChanged,
     required this.child,
@@ -112,6 +137,16 @@ class _DesktopScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Welcome, $displayName'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: onSignOut,
+          )
+        ],
+      ),
       body: Row(
         children: [
           NavigationRail(

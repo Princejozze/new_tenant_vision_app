@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/src/services/house_service.dart';
+import 'package:myapp/src/services/auth_service.dart';
 import 'package:myapp/src/services/theme_service.dart';
 import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/models/room.dart';
@@ -149,7 +150,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$greeting!',
+            '$greeting, ${context.read<AuthService>().displayName ?? 'Landlord'}!',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               color: Theme.of(context).colorScheme.onPrimary,
               fontWeight: FontWeight.bold,

@@ -7,13 +7,33 @@ import 'package:myapp/src/widgets/scaffold_with_navigation.dart';
 import 'package:myapp/src/services/house_service.dart';
 import 'package:provider/provider.dart';
 
+import 'package:myapp/src/services/auth_service.dart';
+import 'package:myapp/src/screens/auth/login_screen.dart';
+import 'package:myapp/src/screens/auth/register_screen.dart';
+import 'package:provider/provider.dart';
+
 final GoRouter router = GoRouter(
   initialLocation: '/dashboard',
+  redirect: (context, state) {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final isLoggingIn = state.subloc == '/login' || state.subloc == '/register';
+    if (!auth.isAuthenticated && !isLoggingIn) return '/login';
+    if (auth.isAuthenticated && isLoggingIn) return '/dashboard';
+    return null;
+  },
   routes: <RouteBase>[
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
     GoRoute(
       path: '/dashboard',
       builder: (BuildContext context, GoRouterState state) {
-        return ScaffoldWithNavigation();
+        return const ScaffoldWithNavigation();
       },
     ),
     GoRoute(
