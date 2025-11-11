@@ -87,10 +87,34 @@ class _AdminAppState extends State<AdminApp> {
         Provider<FirebaseFirestore>(create: (_) => FirebaseFirestore.instance),
         ChangeNotifierProvider.value(value: _authService),
       ],
-      child: MaterialApp.router(
-        title: 'Admin Console',
-        theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-        routerConfig: _router!,
+      child: Builder(
+        builder: (context) {
+          try {
+            return MaterialApp.router(
+              title: 'Admin Console',
+              theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
+              routerConfig: _router!,
+            );
+          } catch (e, stack) {
+            debugPrint('Error building MaterialApp.router: $e\n$stack');
+            return MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Error loading app: $e'),
+                      ElevatedButton(
+                        onPressed: () => setState(() {}),
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+        },
       ),
     );
   }
