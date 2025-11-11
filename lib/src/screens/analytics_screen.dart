@@ -6,6 +6,8 @@ import 'package:myapp/src/services/house_service.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:myapp/src/widgets/simple_chart.dart';
 import 'package:myapp/src/widgets/grouped_bar_chart.dart';
+import 'package:myapp/src/widgets/pie_chart.dart';
+import 'package:myapp/src/services/expense_service.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -25,6 +27,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         final monthlyNet = _computeMonthlyNetProfit(houses, months: 12);
         final yearlyNet = _computeYearlyNetProfit(houses, years: 3);
         final currency = NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0);
+
+        // Expense Category Breakdown (last 12 months)
+        final now = DateTime.now();
+        final start = DateTime(now.year, now.month - 11, 1);
+        final expenseService = context.watch<ExpenseService>();
+        final categorySums = expenseService.sumByCategory(start: start, end: now);
 
         final totalIncomeLast12 = _sum(monthlyNet.map((e) => e.income).toList());
         final totalExpensesLast12 = _sum(monthlyNet.map((e) => e.expenses).toList());
@@ -112,6 +120,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     colorB: Colors.red,
                     labels: yearlyNet.map((e) => e.year.toString()).toList(),
                   ),
+
+                const SizedBox(height: 24),
+
+                // Expense Category Breakdown (Pie)
+                PieChartWidget(
+                  title: 'Expense Category Breakdown (Last 12 Months)',
+                  data: categorySums,
+                ),
 
                 const SizedBox(height: 24),
 
