@@ -32,11 +32,20 @@ Future<void> main() async {
     return false; // Let Flutter handle it
   };
   
+  FirebaseApp? app;
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    app = await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    debugPrint('Firebase initialized successfully: ${app.name}');
   } catch (e) {
-    // Firebase might already be initialized
-    debugPrint('Firebase initialization: $e');
+    // Firebase might already be initialized, try to get existing app
+    try {
+      app = Firebase.app();
+      debugPrint('Using existing Firebase app: ${app.name}');
+    } catch (e2) {
+      debugPrint('Firebase initialization error: $e');
+      debugPrint('Could not get existing app: $e2');
+      // Continue anyway - some features might not work
+    }
   }
   
   runApp(const AdminApp());
@@ -50,30 +59,35 @@ class AdminApp extends StatefulWidget {
 }
 
 class _AdminAppState extends State<AdminApp> {
-  late final AdminAuthService _authService;
+  AdminAuthService? _authService;
   GoRouter? _router;
 
   @override
   void initState() {
     super.initState();
-    try {
-      _authService = AdminAuthService();
-      // Create router after a microtask to ensure everything is ready
-      Future.microtask(() {
-        if (mounted) {
+    // Wait a bit for Firebase to be ready before initializing services
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        try {
           setState(() {
+            _authService = AdminAuthService();
+            _router = createAdminRouter(_authService);
+          });
+        } catch (e, stack) {
+          debugPrint('Error initializing AdminApp: $e\n$stack');
+          // Create anyway to show error
+          setState(() {
+            _authService = AdminAuthService();
             _router = createAdminRouter(_authService);
           });
         }
-      });
-    } catch (e) {
-      debugPrint('Error initializing AdminApp: $e');
-    }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_router == null) {
+    if (_router == null || _authService == null) {
       return MaterialApp(
         home: Scaffold(
           body: Center(child: CircularProgressIndicator()),
@@ -85,7 +99,7 @@ class _AdminAppState extends State<AdminApp> {
       providers: [
         Provider<FirebaseAuth>(create: (_) => FirebaseAuth.instance),
         Provider<FirebaseFirestore>(create: (_) => FirebaseFirestore.instance),
-        ChangeNotifierProvider.value(value: _authService),
+        ChangeNotifierProvider.value(value: _authService!),
       ],
       child: Builder(
         builder: (context) {
