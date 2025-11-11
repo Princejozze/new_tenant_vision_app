@@ -11,11 +11,15 @@ import 'package:myapp/src/screens/tenant_history_screen.dart';
 class RoomCard extends StatefulWidget {
   final Room room;
   final Function(Room) onRoomUpdated;
+  final String? houseName;
+  final String? houseAddress;
 
   const RoomCard({
     super.key, 
     required this.room,
     required this.onRoomUpdated,
+    this.houseName,
+    this.houseAddress,
   });
 
   @override
@@ -169,6 +173,16 @@ class _RoomCardState extends State<RoomCard> {
             ),
           ),
           const PopupMenuItem<String>(
+            value: 'download_tenant_info',
+            child: Row(
+              children: [
+                Icon(Icons.download, size: 20),
+                SizedBox(width: 8),
+                Text('Download tenant info (PDF)'),
+              ],
+            ),
+          ),
+          const PopupMenuItem<String>(
             value: 'vacate_room',
             child: Row(
               children: [
@@ -232,13 +246,15 @@ class _RoomCardState extends State<RoomCard> {
                     ),
                     PopupMenuButton<String>(
                       onSelected: (value) {
-                        if (value == 'add_tenant') {
-                          _showAddTenantDialog(context);
-                        } else if (value == 'edit_tenant') {
-                          _showEditTenantDialog(context);
-                        } else if (value == 'vacate_room') {
-                          _showVacateRoomConfirmationDialog(context);
-                        }
+                         if (value == 'add_tenant') {
+                         _showAddTenantDialog(context);
+                       } else if (value == 'edit_tenant') {
+                         _showEditTenantDialog(context);
+                       } else if (value == 'vacate_room') {
+                         _showVacateRoomConfirmationDialog(context);
+                       } else if (value == 'download_tenant_info') {
+                         _downloadTenantInfo(context);
+                       }
                       },
                       itemBuilder: (BuildContext context) => dropdownItems,
                     ),
@@ -299,6 +315,28 @@ class _RoomCardState extends State<RoomCard> {
           ),
         ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _downloadTenantInfo(BuildContext context) async {
+    final tenant = widget.room.tenant;
+    if (tenant == null) return;
+
+    final propertyName = widget.houseName ?? 'Property';
+    final success = await ReceiptService.downloadTenantInfo(
+      tenant: tenant,
+      room: widget.room,
+      propertyName: propertyName,
+      propertyAddress: widget.houseAddress,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? 'Tenant info PDF downloaded successfully.'
+            : 'Failed to download tenant info PDF.'),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/src/services/house_service.dart';
+import 'package:myapp/src/services/theme_service.dart';
 import 'package:myapp/src/models/house.dart';
 import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/widgets/add_property_dialog.dart';
@@ -51,18 +52,44 @@ class DashboardScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Dashboard'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () => _showTenantSearchDialog(context),
-                tooltip: 'Search Tenants',
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () => _showAddPropertyDialog(context),
-                tooltip: 'Add Property',
-              ),
-            ],
+           actions: [
+             IconButton(
+               icon: const Icon(Icons.search),
+               onPressed: () => _showTenantSearchDialog(context),
+               tooltip: 'Search Tenants',
+             ),
+             IconButton(
+               icon: const Icon(Icons.add),
+               onPressed: () => _showAddPropertyDialog(context),
+               tooltip: 'Add Property',
+             ),
+             Consumer<ThemeService>(
+               builder: (context, themeService, _) {
+                 final mode = themeService.mode;
+                 IconData icon;
+                 String tooltip;
+                 switch (mode) {
+                   case ThemeMode.system:
+                     icon = Icons.brightness_auto;
+                     tooltip = 'System theme';
+                     break;
+                   case ThemeMode.light:
+                     icon = Icons.light_mode;
+                     tooltip = 'Light theme';
+                     break;
+                   case ThemeMode.dark:
+                     icon = Icons.dark_mode;
+                     tooltip = 'Dark theme';
+                     break;
+                 }
+                 return IconButton(
+                   icon: Icon(icon),
+                   tooltip: '$tooltip — tap to change',
+                   onPressed: () => themeService.cycleMode(),
+                 );
+               },
+             ),
+           ],
           ),
           body: _buildDashboard(context, metrics),
         );

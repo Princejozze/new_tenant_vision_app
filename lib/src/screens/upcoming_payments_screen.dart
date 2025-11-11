@@ -5,8 +5,7 @@ import 'package:myapp/src/models/room.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/src/services/sms_service.dart';
-import 'package:provider/provider.dart';
-import 'package:myapp/src/services/house_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UpcomingPaymentsScreen extends StatelessWidget {
   const UpcomingPaymentsScreen({super.key});

@@ -135,6 +135,8 @@ class HouseDetailPage extends StatelessWidget {
                                     print('Room updated callback triggered for room ${updatedRoom.roomNumber}');
                                     houseService.updateRoomInHouse(houseId, updatedRoom, index);
                                   },
+                                  houseName: house.name,
+                                  houseAddress: house.address,
                                 ),
                               );
                             }

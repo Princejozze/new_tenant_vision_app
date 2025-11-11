@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/src/navigation/router.dart';
 import 'package:myapp/src/services/house_service.dart';
+import 'package:myapp/src/services/theme_service.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -14,25 +15,39 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = ColorScheme.fromSeed(seedColor: Colors.blue);
 
-    return ChangeNotifierProvider(
-      create: (context) => HouseService(),
-      child: MaterialApp.router(
-        title: 'Rental Property Manager',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: colorScheme,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-          scaffoldBackgroundColor: const Color(0xFFF7F7F7),
-          cardTheme: CardThemeData(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: colorScheme.outline.withAlpha(128), width: 1),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => HouseService()),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
+      ],
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, _) {
+          final darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.dark);
+          return MaterialApp.router(
+            title: 'Rental Property Manager',
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: colorScheme,
+              visualDensity: VisualDensity.adaptivePlatformDensity,
+              scaffoldBackgroundColor: const Color(0xFFF7F7F7),
+              cardTheme: CardThemeData(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: colorScheme.outline.withAlpha(128), width: 1),
+                ),
+              ),
             ),
-          ),
-        ),
-        routerConfig: router,
-        debugShowCheckedModeBanner: false,
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: darkColorScheme,
+              visualDensity: VisualDensity.adaptivePlatformDensity,
+            ),
+            themeMode: themeService.mode,
+            routerConfig: router,
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
     );
   }
