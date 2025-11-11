@@ -53,17 +53,10 @@ class DashboardScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Dashboard'),
-           actions: [
-             IconButton(
-               icon: const Icon(Icons.search),
-               onPressed: () => _showTenantSearchDialog(context),
-               tooltip: 'Search Tenants',
-             ),
-             IconButton(
-               icon: const Icon(Icons.add),
-               onPressed: () => _showAddPropertyDialog(context),
-               tooltip: 'Add Property',
-             ),
+           actions: [ // Removed search/plus per requirement
+             // Intentionally left blank: actions moved to Properties page
+             // IconButton(Icons.search ...), IconButton(Icons.add ...)
+            
              Consumer<ThemeService>(
                builder: (context, themeService, _) {
                  final mode = themeService.mode;

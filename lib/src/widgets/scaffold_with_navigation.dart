@@ -79,23 +79,20 @@ class _MobileScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Welcome, $displayName'),
+        leading: IconButton(
+          tooltip: 'Profile',
+          icon: const Icon(Icons.account_circle),
+          onPressed: () => _openProfile(context),
+        ),
+        title: const SizedBox.shrink(),
         actions: [
-          IconButton(
-            tooltip: 'Menu',
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openEndDrawer(),
+          Builder(
+            builder: (ctx) => IconButton(
+              tooltip: 'Menu',
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+            ),
           ),
-          IconButton(
-            tooltip: 'Profile',
-            icon: const Icon(Icons.account_circle),
-            onPressed: () => _openProfile(context),
-          ),
-          IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: onSignOut,
-          )
         ],
       ),
       endDrawer: Drawer(
@@ -155,6 +152,12 @@ class _MobileScaffold extends StatelessWidget {
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
               onTap: () { Navigator.pop(context); _openSettings(context); },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () { Navigator.pop(context); onSignOut(); },
             ),
           ],
         ),
@@ -217,19 +220,13 @@ class _DesktopScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Welcome, $displayName'),
-        actions: [
-          IconButton(
-            tooltip: 'Profile',
-            icon: const Icon(Icons.account_circle),
-            onPressed: () => _openProfile(context),
-          ),
-          IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: onSignOut,
-          )
-        ],
+        leading: IconButton(
+          tooltip: 'Profile',
+          icon: const Icon(Icons.account_circle),
+          onPressed: () => _openProfile(context),
+        ),
+        title: const SizedBox.shrink(),
+        actions: const [],
       ),
       body: Row(
         children: [
