@@ -27,8 +27,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => HouseService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
-        ChangeNotifierProvider(create: (_) => ExpenseService()),
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => ExpenseService()),
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, _) {

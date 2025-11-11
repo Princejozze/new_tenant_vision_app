@@ -467,7 +467,7 @@ class DashboardScreen extends StatelessWidget {
             Expanded(
               child: SimpleChart(
                 title: 'Net Profit (12 months)',
-                data: _computeDashboardNetProfit(),
+                data: _computeDashboardNetProfit(context),
                 color: Colors.blue,
               ),
             ),
@@ -560,7 +560,7 @@ class DashboardScreen extends StatelessWidget {
     return 'Good Evening';
   }
 
-  List<double> _computeDashboardNetProfit() {
+  List<double> _computeDashboardNetProfit(BuildContext context) {
     // Compute net profit for last 12 months using payments as income and 0 expenses for now
     final houses = context.read<HouseService>().houses;
     final now = DateTime.now();

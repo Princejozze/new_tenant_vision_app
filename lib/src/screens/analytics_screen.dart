@@ -23,16 +23,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget build(BuildContext context) {
     return Consumer<HouseService>(
       builder: (context, houseService, _) {
-        final houses = houseService.houses;
-        final monthlyNet = _computeMonthlyNetProfit(houses, months: 12);
-        final yearlyNet = _computeYearlyNetProfit(houses, years: 3);
-        final currency = NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0);
+        try {
+          final houses = houseService.houses;
+          final monthlyNet = _computeMonthlyNetProfit(houses, months: 12);
+          final yearlyNet = _computeYearlyNetProfit(houses, years: 3);
+          final currency = NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0);
 
-        // Expense Category Breakdown (last 12 months)
-        final now = DateTime.now();
-        final start = DateTime(now.year, now.month - 11, 1);
-        final expenseService = context.watch<ExpenseService>();
-        final categorySums = expenseService.sumByCategory(start: start, end: now);
+          // Expense Category Breakdown (last 12 months)
+          final now = DateTime.now();
+          final start = DateTime(now.year, now.month - 11, 1);
+          Map<String, double> categorySums = {};
+          try {
+            final expenseService = context.watch<ExpenseService>();
+            categorySums = expenseService.sumByCategory(start: start, end: now);
+          } catch (e) {
+            print('Error accessing ExpenseService: $e');
+            categorySums = {};
+          }
 
         final totalIncomeLast12 = _sum(monthlyNet.map((e) => e.income).toList());
         final totalExpensesLast12 = _sum(monthlyNet.map((e) => e.expenses).toList());
@@ -51,6 +58,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             : 'Net Profit (Last 12 Months)';
 
         return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             title: const Text('Analytics'),
           ),
@@ -146,6 +154,37 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           ),
         );
+        } catch (e, stackTrace) {
+          print('Error in AnalyticsScreen: $e');
+          print('Stack trace: $stackTrace');
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Analytics'),
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading analytics',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      e.toString(),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
       },
     );
   }
