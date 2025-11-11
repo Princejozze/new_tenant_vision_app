@@ -59,7 +59,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyBnw_GIgPB-EzI9YlGxLvCh_MDbShXIISA',
-    appId: '1:34852440749:web:2f8ac1a7ab1b109cb15424',
+    appId: '1:34852440749:web:7db722bc2cad2454b15424',
     messagingSenderId: '34852440749',
     projectId: 'tenant-database-dd733',
     authDomain: 'tenant-database-dd733.firebaseapp.com',
