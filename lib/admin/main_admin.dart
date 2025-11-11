@@ -27,7 +27,10 @@ class AdminApp extends StatelessWidget {
       child: MaterialApp.router(
         title: 'Admin Console',
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-        routerConfig: adminRouter,
+        routerConfig: createAdminRouter(
+          // Safe to read with listen:true here to rebuild router when auth changes
+          context.watch<AdminAuthService>(),
+        ),
       ),
     );
   }
