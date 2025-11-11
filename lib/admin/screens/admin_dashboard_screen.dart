@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -325,7 +326,10 @@ class _AnalyticsTab extends StatelessWidget {
     final landlords = await db.collection('landlords').count().get();
     final activeSubs = await db.collection('subscriptions').where('active', isEqualTo: true).count().get();
     final payments = await db.collection('payments').where('createdAt', isGreaterThan: DateTime.now().subtract(const Duration(days: 30))).count().get();
-    return [landlords.count, activeSubs.count, payments.count];
+    final int l = landlords.count ?? 0;
+    final int s = activeSubs.count ?? 0;
+    final int p = payments.count ?? 0;
+    return [l, s, p];
   }
 }
 

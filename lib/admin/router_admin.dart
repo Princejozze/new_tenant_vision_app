@@ -11,7 +11,7 @@ GoRouter createAdminRouter(AdminAuthService auth) {
     initialLocation: '/login',
     refreshListenable: auth,
     redirect: (context, state) {
-      final bool loggingIn = state.subloc == '/login';
+      final bool loggingIn = state.uri.path == '/login';
       if (!auth.isAuthenticated && !loggingIn) return '/login';
       if (auth.isAuthenticated && loggingIn) return '/';
       return null;
