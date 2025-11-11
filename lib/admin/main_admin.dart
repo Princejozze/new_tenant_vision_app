@@ -10,7 +10,12 @@ import 'services/admin_auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    // Firebase might already be initialized
+    debugPrint('Firebase initialization: $e');
+  }
   runApp(const AdminApp());
 }
 
@@ -23,17 +28,36 @@ class AdminApp extends StatefulWidget {
 
 class _AdminAppState extends State<AdminApp> {
   late final AdminAuthService _authService;
-  late final GoRouter _router;
+  GoRouter? _router;
 
   @override
   void initState() {
     super.initState();
-    _authService = AdminAuthService();
-    _router = createAdminRouter(_authService);
+    try {
+      _authService = AdminAuthService();
+      // Create router after a microtask to ensure everything is ready
+      Future.microtask(() {
+        if (mounted) {
+          setState(() {
+            _router = createAdminRouter(_authService);
+          });
+        }
+      });
+    } catch (e) {
+      debugPrint('Error initializing AdminApp: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_router == null) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     return MultiProvider(
       providers: [
         Provider<FirebaseAuth>(create: (_) => FirebaseAuth.instance),
@@ -43,7 +67,7 @@ class _AdminAppState extends State<AdminApp> {
       child: MaterialApp.router(
         title: 'Admin Console',
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-        routerConfig: _router,
+        routerConfig: _router!,
       ),
     );
   }

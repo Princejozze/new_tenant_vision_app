@@ -11,10 +11,16 @@ GoRouter createAdminRouter(AdminAuthService auth) {
     initialLocation: '/login',
     refreshListenable: auth,
     redirect: (context, state) {
-      final bool loggingIn = state.uri.path == '/login';
-      if (!auth.isAuthenticated && !loggingIn) return '/login';
-      if (auth.isAuthenticated && loggingIn) return '/';
-      return null;
+      try {
+        final bool loggingIn = state.uri.path == '/login';
+        if (!auth.ready) return null; // Wait for auth to be ready
+        if (!auth.isAuthenticated && !loggingIn) return '/login';
+        if (auth.isAuthenticated && loggingIn) return '/';
+        return null;
+      } catch (e) {
+        // If there's any error, default to login
+        return '/login';
+      }
     },
     routes: [
       GoRoute(
