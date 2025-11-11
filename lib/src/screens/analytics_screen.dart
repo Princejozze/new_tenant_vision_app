@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:myapp/src/services/house_service.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:myapp/src/widgets/simple_chart.dart';
+import 'package:myapp/src/widgets/grouped_bar_chart.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -87,6 +88,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   data: chartData,
                   color: Theme.of(context).colorScheme.primary,
                 ),
+
+                const SizedBox(height: 24),
+
+                // Income vs Expenses (Monthly)
+                if (!_yearly)
+                  GroupedBarChart(
+                    title: 'Income vs Expenses (Monthly)',
+                    seriesA: monthlyNet.map((e) => e.income).toList(),
+                    seriesB: monthlyNet.map((e) => e.expenses).toList(),
+                    colorA: Colors.green,
+                    colorB: Colors.red,
+                    labels: monthlyNet.map((e) => e.label).toList(),
+                  ),
+
+                // Income vs Expenses (Yearly)
+                if (_yearly)
+                  GroupedBarChart(
+                    title: 'Income vs Expenses (Yearly)',
+                    seriesA: yearlyNet.map((e) => e.income).toList(),
+                    seriesB: yearlyNet.map((e) => e.expenses).toList(),
+                    colorA: Colors.green,
+                    colorB: Colors.red,
+                    labels: yearlyNet.map((e) => e.year.toString()).toList(),
+                  ),
 
                 const SizedBox(height: 24),
 
