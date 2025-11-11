@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _user;
+  final _db = FirebaseFirestore.instance;
 
   AuthService() {
     _auth.authStateChanges().listen((user) {
@@ -22,6 +24,7 @@ class AuthService extends ChangeNotifier {
     if (displayName != null && displayName.isNotEmpty) {
       await cred.user?.updateDisplayName(displayName);
     }
+    await _ensureLandlordDoc(cred.user, displayNameHint: displayName);
     await cred.user?.reload();
     _user = _auth.currentUser;
     notifyListeners();
@@ -29,10 +32,15 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<UserCredential> signInWithEmail(String email, String password) async {
-    final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
-    _user = cred.user;
-    notifyListeners();
-    return cred;
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      _user = cred.user;
+      await _ensureLandlordDoc(_user);
+      notifyListeners();
+      return cred;
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_mapAuthError(e));
+    }
   }
 
   Future<UserCredential> signInWithGoogle() async {
@@ -43,6 +51,7 @@ class AuthService extends ChangeNotifier {
         ..setCustomParameters({'prompt': 'select_account'});
       final cred = await _auth.signInWithPopup(googleProvider);
       _user = cred.user;
+      await _ensureLandlordDoc(_user);
       notifyListeners();
       return cred;
     } else {
@@ -57,6 +66,7 @@ class AuthService extends ChangeNotifier {
       );
       final cred = await _auth.signInWithCredential(credential);
       _user = cred.user;
+      await _ensureLandlordDoc(_user);
       notifyListeners();
       return cred;
     }
@@ -69,5 +79,46 @@ class AuthService extends ChangeNotifier {
     await _auth.signOut();
     _user = null;
     notifyListeners();
+  }
+
+  Future<void> _ensureLandlordDoc(User? user, {String? displayNameHint}) async {
+    if (user == null) return;
+    final ref = _db.collection('landlords').doc(user.uid);
+    final snap = await ref.get();
+    final now = FieldValue.serverTimestamp();
+    final name = user.displayName ?? displayNameHint ?? user.email?.split('@').first;
+    if (!snap.exists) {
+      await ref.set({
+        'name': name,
+        'email': user.email,
+        'active': true,
+        'createdAt': now,
+        'lastLoginAt': now,
+      }, SetOptions(merge: true));
+    } else {
+      await ref.set({
+        'name': name,
+        'email': user.email,
+        'lastLoginAt': now,
+      }, SetOptions(merge: true));
+    }
+  }
+
+  String _mapAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+        return 'Invalid email or password';
+      case 'user-not-found':
+        return 'No account found for that email';
+      case 'user-disabled':
+        return 'This account has been disabled';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later';
+      case 'invalid-email':
+        return 'The email address is not valid';
+      default:
+        return 'Authentication failed: ${e.code}';
+    }
   }
 }
