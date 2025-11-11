@@ -9,6 +9,7 @@ on:
       - '.firebaserc'
       - 'pubspec.yaml'
       - '.github/workflows/firebase-hosting-admin.yml'
+  workflow_dispatch:
 
 jobs:
   build_and_deploy:
