@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class Sidebar extends StatelessWidget {
   final bool isCollapsed;
@@ -25,15 +26,14 @@ class Sidebar extends StatelessWidget {
             child: ListView(
               children: [
                 _buildMenuItem(context, Icons.grid_view_rounded, 'Current Houses', true),
-                _buildMenuItem(context, Icons.calendar_today_rounded, 'Upcoming'),
                 _buildMenuItem(context, Icons.notifications_rounded, 'Reminders'),
-                _buildMenuItem(context, Icons.warning_rounded, 'Overdue'),
                 _buildMenuItem(context, Icons.article_rounded, 'Leases'),
                 _buildMenuItem(context, Icons.history_rounded, 'Tenant History'),
                 _buildMenuItem(context, Icons.bar_chart_rounded, 'Financials'),
               ],
             ),
           ),
+          _buildMenuItem(context, Icons.support_agent, 'Support'),
           _buildMenuItem(context, Icons.language_rounded, 'Language'),
           _buildMenuItem(context, Icons.help_outline_rounded, 'Help & Tutorial'),
         ],
@@ -46,6 +46,17 @@ class Sidebar extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    void _handleTap() {
+      switch (title) {
+        case 'Support':
+          context.go('/support');
+          break;
+        default:
+          // Other menu items can be handled here if needed
+          break;
+      }
+    }
+
     // When collapsed, return a simple, centered icon to avoid layout errors.
     if (isCollapsed) {
       return Container(
@@ -55,7 +66,10 @@ class Sidebar extends StatelessWidget {
           color: isActive ? colorScheme.primary.withAlpha(25) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: isActive ? colorScheme.primary : colorScheme.onSurfaceVariant),
+        child: IconButton(
+          icon: Icon(icon, color: isActive ? colorScheme.primary : colorScheme.onSurfaceVariant),
+          onPressed: _handleTap,
+        ),
       );
     }
 
@@ -72,7 +86,7 @@ class Sidebar extends StatelessWidget {
             style: theme.textTheme.bodyLarge?.copyWith(
                 color: isActive ? colorScheme.primary : colorScheme.onSurface,
                 fontWeight: FontWeight.w500)),
-        onTap: () {},
+        onTap: _handleTap,
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
       ),

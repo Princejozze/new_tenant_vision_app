@@ -64,7 +64,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_error != null) ...[
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[300]!),
+                      ),
+                      child: Text(
+                        _error!,
+                        style: TextStyle(color: Colors.red[900], fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                   ],
                   TextFormField(

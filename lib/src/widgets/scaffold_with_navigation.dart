@@ -8,6 +8,8 @@ import 'package:myapp/src/screens/upcoming_payments_screen.dart';
 import 'package:myapp/src/screens/reminders_screen.dart';
 import 'package:myapp/src/screens/overdue_payments_screen.dart';
 import 'package:myapp/src/screens/payment_history_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ScaffoldWithNavigation extends StatefulWidget {
   const ScaffoldWithNavigation({super.key});
@@ -22,10 +24,8 @@ class _ScaffoldWithNavigationState extends State<ScaffoldWithNavigation> {
   final List<Widget> _screens = const [
     DashboardScreen(),           // 0 - Home
     PropertiesScreen(),          // 1 - Properties
-    UpcomingPaymentsScreen(),    // 2 - Upcoming
-    RemindersScreen(),           // 3 - Reminders
-    OverduePaymentsScreen(),     // 4 - Overdue
-    PaymentHistoryScreen(),      // 5 - Payments
+    RemindersScreen(),           // 2 - Reminders (with Upcoming and Overdue tabs)
+    PaymentHistoryScreen(),      // 3 - Payments
   ];
 
   @override
@@ -61,11 +61,47 @@ class _MobileScaffold extends StatelessWidget {
   void _openSettings(BuildContext context) => context.go('/settings');
   void _openFinancial(BuildContext context) => context.go('/financial');
   void _openAnalytics(BuildContext context) => context.go('/analytics');
+  void _openSubscription(BuildContext context) => context.go('/subscription');
+  void _openSupport(BuildContext context) => context.go('/support');
   final VoidCallback onSignOut;
   final String displayName;
   final int selectedIndex;
   final Function(int) onIndexChanged;
   final Widget child;
+
+  Future<Map<String, dynamic>?> _getLandlordInfo(AuthService auth) async {
+    final user = auth.user;
+    if (user == null) return null;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('landlords')
+          .doc(user.uid)
+          .get();
+      return doc.data();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String? _getProfileImageUrl(Map<String, dynamic>? landlordData) {
+    return landlordData?['photoUrl'] as String?;
+  }
+
+  String _getDaySuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return 'th';
+    }
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
 
   const _MobileScaffold({
     required this.onSignOut,
@@ -98,39 +134,92 @@ class _MobileScaffold extends StatelessWidget {
       endDrawer: Drawer(
         child: ListView(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.account_circle, size: 48, color: Colors.white),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            displayName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 20,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
+            FutureBuilder<Map<String, dynamic>?>(
+              future: _getLandlordInfo(auth),
+              builder: (context, snapshot) {
+                final landlordData = snapshot.data;
+                final joinDate = landlordData?['createdAt'] as Timestamp?;
+                final planType = landlordData?['planType'] as String? ?? 'Free Plan';
+                final profileImageUrl = _getProfileImageUrl(landlordData);
+                
+                String joinDateText = 'Joined recently';
+                if (joinDate != null) {
+                  final date = joinDate.toDate();
+                  final day = date.day;
+                  final month = DateFormat('MMMM').format(date);
+                  final year = date.year;
+                  final suffix = _getDaySuffix(day);
+                  joinDateText = 'Joined ${day}$suffix $month $year';
+                }
+                
+                return Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
-                ),
-              ),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        // Profile Image Circle
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.white,
+                          backgroundImage: profileImageUrl != null
+                              ? NetworkImage(profileImageUrl)
+                              : null,
+                          child: profileImageUrl == null
+                              ? Text(
+                                  (displayName.isNotEmpty ? displayName[0] : 'U').toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                displayName.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                joinDateText,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                planType,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.home),
@@ -143,31 +232,16 @@ class _MobileScaffold extends StatelessWidget {
               onTap: () { Navigator.pop(context); onIndexChanged(1); },
             ),
             ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Upcoming Payments'),
-              onTap: () { Navigator.pop(context); onIndexChanged(2); },
-            ),
-            ListTile(
               leading: const Icon(Icons.notifications_outlined),
               title: const Text('Reminders'),
-              onTap: () { Navigator.pop(context); onIndexChanged(3); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.warning_outlined),
-              title: const Text('Overdue Payments'),
-              onTap: () { Navigator.pop(context); onIndexChanged(4); },
+              onTap: () { Navigator.pop(context); onIndexChanged(2); },
             ),
             ListTile(
               leading: const Icon(Icons.receipt_long),
               title: const Text('Payment History'),
-              onTap: () { Navigator.pop(context); onIndexChanged(5); },
+              onTap: () { Navigator.pop(context); onIndexChanged(3); },
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Change Profile'),
-              onTap: () { Navigator.pop(context); _openProfile(context); },
-            ),
             ListTile(
               leading: const Icon(Icons.attach_money),
               title: const Text('Financial'),
@@ -182,6 +256,11 @@ class _MobileScaffold extends StatelessWidget {
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
               onTap: () { Navigator.pop(context); _openSettings(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.support_agent),
+              title: const Text('Support'),
+              onTap: () { Navigator.pop(context); _openSupport(context); },
             ),
             const Divider(),
             ListTile(
@@ -206,16 +285,8 @@ class _MobileScaffold extends StatelessWidget {
             label: 'Properties',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_today),
-            label: 'Upcoming',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.notifications_outlined),
             label: 'Reminders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.warning_outlined),
-            label: 'Overdue',
           ),
           NavigationDestination(
             icon: Icon(Icons.receipt_long),
@@ -232,6 +303,8 @@ class _DesktopScaffold extends StatelessWidget {
   void _openSettings(BuildContext context) => context.go('/settings');
   void _openFinancial(BuildContext context) => context.go('/financial');
   void _openAnalytics(BuildContext context) => context.go('/analytics');
+  void _openSubscription(BuildContext context) => context.go('/subscription');
+  void _openSupport(BuildContext context) => context.go('/support');
   final VoidCallback onSignOut;
   final String displayName;
   final int selectedIndex;
@@ -274,16 +347,8 @@ class _DesktopScaffold extends StatelessWidget {
                 label: Text('Properties'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.calendar_today),
-                label: Text('Upcoming'),
-              ),
-              NavigationRailDestination(
                 icon: Icon(Icons.notifications_outlined),
                 label: Text('Reminders'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.warning_outlined),
-                label: Text('Overdue'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.receipt_long),

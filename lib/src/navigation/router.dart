@@ -14,6 +14,8 @@ import 'package:myapp/src/screens/settings_screen.dart';
 import 'package:myapp/src/screens/change_profile_screen.dart';
 import 'package:myapp/src/screens/financial_screen.dart';
 import 'package:myapp/src/screens/analytics_screen.dart';
+import 'package:myapp/src/screens/subscription_screen.dart';
+import 'package:myapp/src/screens/support_screen.dart';
 import 'package:provider/provider.dart';
 
 final GoRouter router = GoRouter(
@@ -55,6 +57,14 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/analytics',
       builder: (context, state) => const AnalyticsScreen(),
+    ),
+    GoRoute(
+      path: '/subscription',
+      builder: (context, state) => const SubscriptionScreen(),
+    ),
+    GoRoute(
+      path: '/support',
+      builder: (context, state) => const SupportScreen(),
     ),
     GoRoute(
       path: '/house/:houseId',

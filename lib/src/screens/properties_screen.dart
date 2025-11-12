@@ -41,14 +41,14 @@ class PropertiesScreen extends StatelessWidget {
             onPressed: () => _showTenantSearchDialog(context),
             tooltip: 'Search Tenants',
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddPropertyDialog(context),
-            tooltip: 'Add Property',
-          ),
         ],
       ),
       body: const HouseList(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddPropertyDialog(context),
+        tooltip: 'Add Property',
+        child: const Icon(Icons.add),
+      ),
     );
 
     final desktopBody = Scaffold(

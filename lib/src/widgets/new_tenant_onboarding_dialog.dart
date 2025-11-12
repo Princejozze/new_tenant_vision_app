@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/src/models/tenant.dart';
 import 'package:myapp/src/models/room.dart';
+import 'package:myapp/src/services/image_upload_service.dart';
 
 class NewTenantOnboardingDialog extends StatefulWidget {
   final Room room;
@@ -33,6 +35,7 @@ class _NewTenantOnboardingDialogState extends State<NewTenantOnboardingDialog> {
   DateTime? _startDate;
   String? _photoUrl;
   bool _areNameAndDateLocked = false;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -144,9 +147,15 @@ class _NewTenantOnboardingDialogState extends State<NewTenantOnboardingDialog> {
                           ),
                           const SizedBox(width: 16),
                           ElevatedButton.icon(
-                            onPressed: _uploadPhoto,
-                            icon: const Icon(Icons.cloud_upload),
-                            label: const Text('Upload Photo'),
+                            onPressed: _isUploadingPhoto ? null : _uploadPhoto,
+                            icon: _isUploadingPhoto
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.cloud_upload),
+                            label: Text(_isUploadingPhoto ? 'Uploading...' : 'Upload Photo'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorScheme.surfaceVariant,
                               foregroundColor: colorScheme.onSurfaceVariant,
@@ -380,11 +389,50 @@ class _NewTenantOnboardingDialogState extends State<NewTenantOnboardingDialog> {
     );
   }
 
-  void _uploadPhoto() {
-    // TODO: Implement photo upload functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Photo upload functionality coming soon')),
-    );
+  Future<void> _uploadPhoto() async {
+    try {
+      final imageFile = await ImageUploadService.pickImageWithSource(context);
+      if (imageFile == null) return;
+
+      setState(() {
+        _isUploadingPhoto = true;
+      });
+
+      // Upload to Firebase Storage
+      final tenantId = widget.existingTenant?.id ?? 'temp-${DateTime.now().millisecondsSinceEpoch}';
+      final downloadUrl = await ImageUploadService.uploadTenantImage(
+        imageFile: File(imageFile.path),
+        tenantId: tenantId,
+      );
+
+      if (downloadUrl != null && mounted) {
+        setState(() {
+          _photoUrl = downloadUrl;
+          _isUploadingPhoto = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo uploaded successfully')),
+        );
+      } else {
+        if (mounted) {
+          setState(() {
+            _isUploadingPhoto = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload photo. Please try again.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading photo: $e')),
+        );
+      }
+    }
   }
 
   void _selectStartDate() async {

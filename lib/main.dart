@@ -5,6 +5,7 @@ import 'package:myapp/src/services/house_service.dart';
 import 'package:myapp/src/services/theme_service.dart';
 import 'package:myapp/src/services/auth_service.dart';
 import 'package:myapp/src/services/expense_service.dart';
+import 'package:myapp/src/services/language_service.dart';
 import 'package:provider/provider.dart';
 
 
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeService()),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => ExpenseService()),
+        ChangeNotifierProvider(create: (_) => LanguageService()),
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, _) {
