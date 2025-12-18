@@ -1,8 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class SupportScreen extends StatelessWidget {
+class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
+
+  @override
+  State<SupportScreen> createState() => _SupportScreenState();
+}
+
+class _SupportScreenState extends State<SupportScreen> {
+  final _subjectController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _launchWhatsApp() async {
+    final phoneNumber = '255658599929';
+    final url = Uri.parse('https://wa.me/$phoneNumber');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchEmail() async {
+    final email = 'giftj964@gmail.com';
+    final url = Uri.parse('mailto:$email');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        // Try launching anyway - canLaunchUrl can be unreliable
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open email client. Please email $email directly.'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitIssue() async {
+    if (_subjectController.text.trim().isEmpty || _descriptionController.text.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in both subject and description')),
+        );
+      }
+      return;
+    }
+
+    final email = 'giftj964@gmail.com';
+    final subject = Uri.encodeComponent(_subjectController.text.trim());
+    final body = Uri.encodeComponent(_descriptionController.text.trim());
+    final url = Uri.parse('mailto:$email?subject=$subject&body=$body');
+    
+    try {
+      // Try to launch the email client
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (mounted) {
+        _subjectController.clear();
+        _descriptionController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Opening email client...')),
+        );
+      }
+    } catch (e) {
+      // If launch fails, show error with email address
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open email client. Please email $email directly.'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,37 +179,17 @@ class SupportScreen extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.email),
                       title: const Text('Email Support'),
-                      subtitle: const Text('support@propmanage.com'),
+                      subtitle: const Text('giftj964@gmail.com'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Email support: support@propmanage.com')),
-                        );
-                      },
+                      onTap: _launchEmail,
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.phone),
-                      title: const Text('Phone Support'),
-                      subtitle: const Text('+255 XXX XXX XXX'),
+                      leading: const Icon(Icons.chat),
+                      title: const Text('WhatsApp Support'),
+                      subtitle: const Text('+255 658 599 929'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Phone support: +255 XXX XXX XXX')),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.chat_bubble_outline),
-                      title: const Text('Live Chat'),
-                      subtitle: const Text('Available 9 AM - 5 PM EAT'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Live chat coming soon!')),
-                        );
-                      },
+                      onTap: _launchWhatsApp,
                     ),
                   ],
                 ),
@@ -146,6 +216,7 @@ class SupportScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       TextField(
+                        controller: _subjectController,
                         decoration: const InputDecoration(
                           labelText: 'Subject',
                           border: OutlineInputBorder(),
@@ -154,6 +225,7 @@ class SupportScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       TextField(
+                        controller: _descriptionController,
                         maxLines: 5,
                         decoration: const InputDecoration(
                           labelText: 'Description',
@@ -165,12 +237,8 @@ class SupportScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Thank you for your feedback! We will review it soon.')),
-                            );
-                          },
-                          child: const Text('Submit'),
+                          onPressed: _submitIssue,
+                          child: const Text('Submit Inquiry'),
                         ),
                       ),
                     ],

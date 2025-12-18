@@ -1,8 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/src/services/auth_service.dart';
+import 'package:myapp/src/services/pesapal_service.dart';
+import 'package:myapp/src/screens/payment_webview_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 
-class SubscriptionScreen extends StatelessWidget {
+class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
+
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  late final PesapalService _pesapalService;
+  bool _isProcessingPayment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize Pesapal service with your credentials
+    _pesapalService = PesapalService(
+      consumerKey: '0o3deOInEqar+7PwxKl4NS7i2i4hepBK',
+      consumerSecret: 'tTWLKeu7NIGKTqTHgYD5fAbiuWE=',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,12 +139,16 @@ class SubscriptionScreen extends StatelessWidget {
                             ],
                           ),
                           ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Premium plan coming soon!')),
-                              );
-                            },
-                            child: const Text('Upgrade'),
+                            onPressed: _isProcessingPayment
+                                ? null
+                                : () => _handleUpgradeToPremium(context),
+                            child: _isProcessingPayment
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Text('Upgrade'),
                           ),
                         ],
                       ),
@@ -233,6 +261,172 @@ class SubscriptionScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _handleUpgradeToPremium(BuildContext context) async {
+    final auth = context.read<AuthService>();
+    final user = auth.user;
+    
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to upgrade')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isProcessingPayment = true;
+    });
+
+    try {
+      // Generate unique order reference
+      const uuid = Uuid();
+      final orderReference = 'premium-${uuid.v4()}';
+      
+      // Create callback URL - using custom app scheme
+      // Pesapal will redirect here after payment
+      final callbackUrl = 'myapp://payment-callback';
+      
+      // Create notification ID (you can register this in Pesapal dashboard)
+      // For now using a placeholder
+      final notificationId = 'notification-${uuid.v4()}';
+
+      // Create payment order
+      final redirectUrl = await _pesapalService.createPaymentOrder(
+        amount: 50000.0, // TZS 50,000
+        currency: 'TZS',
+        description: 'Premium Plan Subscription - Monthly',
+        callbackUrl: callbackUrl,
+        notificationId: notificationId,
+        reference: orderReference,
+        customerEmail: user.email,
+        customerFirstName: user.displayName?.split(' ').first ?? '',
+        customerLastName: (user.displayName?.split(' ') ?? []).length > 1 
+            ? user.displayName!.split(' ').last 
+            : '',
+        billingAddress: {
+          'country_code': 'TZ',
+        },
+      );
+
+      setState(() {
+        _isProcessingPayment = false;
+      });
+
+      // Show payment webview
+      if (context.mounted) {
+        final result = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (context) => PaymentWebViewScreen(
+              paymentUrl: redirectUrl,
+              callbackUrl: callbackUrl,
+              onPaymentSuccess: (orderTrackingId) async {
+                await _handlePaymentSuccess(context, orderReference, orderTrackingId);
+              },
+              onPaymentError: (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(error ?? 'Payment failed'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+
+        // If payment was successful, result will be true
+        if (result == true && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment successful! Your subscription has been upgraded.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isProcessingPayment = false;
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePaymentSuccess(
+    BuildContext context,
+    String orderReference,
+    String orderTrackingId,
+  ) async {
+    try {
+      final auth = context.read<AuthService>();
+      final user = auth.user;
+      
+      if (user == null) return;
+
+      // Verify payment status with Pesapal
+      final statusData = await _pesapalService.getTransactionStatus(orderTrackingId);
+      final paymentStatus = statusData['payment_status_description'] as String?;
+
+      if (paymentStatus == 'COMPLETED' || paymentStatus == 'Success') {
+        // Update user's subscription in Firestore
+        await FirebaseFirestore.instance
+            .collection('landlords')
+            .doc(user.uid)
+            .set({
+          'planType': 'Premium',
+          'subscriptionStatus': 'active',
+          'subscriptionStartDate': FieldValue.serverTimestamp(),
+          'subscriptionEndDate': Timestamp.fromDate(
+            DateTime.now().add(const Duration(days: 30)),
+          ),
+          'lastPayment': {
+            'orderReference': orderReference,
+            'orderTrackingId': orderTrackingId,
+            'amount': 50000.0,
+            'currency': 'TZS',
+            'date': FieldValue.serverTimestamp(),
+          },
+        }, SetOptions(merge: true));
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Subscription upgraded successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment status: $paymentStatus'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating subscription: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildFeatureItem(BuildContext context, IconData icon, String text) {

@@ -7,7 +7,7 @@ import 'package:myapp/src/services/auth_service.dart';
 import 'package:myapp/src/services/expense_service.dart';
 import 'package:myapp/src/services/language_service.dart';
 import 'package:provider/provider.dart';
-
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
 
@@ -32,11 +32,21 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ExpenseService()),
         ChangeNotifierProvider(create: (_) => LanguageService()),
       ],
-      child: Consumer<ThemeService>(
-        builder: (context, themeService, _) {
+      child: Consumer2<ThemeService, LanguageService>(
+        builder: (context, themeService, languageService, _) {
           final darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.dark);
           return MaterialApp.router(
             title: 'Rental Property Manager',
+            locale: Locale(languageService.currentLanguageCode),
+            supportedLocales: const [
+              Locale('en', ''), // English
+              Locale('sw', ''), // Swahili
+            ],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             theme: ThemeData(
               useMaterial3: true,
               colorScheme: colorScheme,

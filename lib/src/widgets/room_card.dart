@@ -146,19 +146,46 @@ class _RoomCardState extends State<RoomCard> {
           ),
         );
 
-        primaryActionButton = OutlinedButton.icon(
-          onPressed: () {
-            _showPaymentHistoryDialog(context);
-          },
-          icon: const Icon(Icons.history),
-          label: const Text('Payment History'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: colorScheme.primary,
-            side: BorderSide(color: colorScheme.primary),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        // Show two buttons: Add Payment and Payment History
+        // If no payments exist, show Add Payment in red
+        final hasPayments = room.tenant!.payments.isNotEmpty;
+        
+        primaryActionButton = Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _showAddPaymentDialog(context);
+                },
+                icon: const Icon(Icons.payment, size: 18),
+                label: const Text('Add Payment'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: hasPayments ? colorScheme.primary : Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  _showPaymentHistoryDialog(context);
+                },
+                icon: const Icon(Icons.history, size: 18),
+                label: const Text('Payment History'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.primary,
+                  side: BorderSide(color: colorScheme.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
 
         dropdownItems = [

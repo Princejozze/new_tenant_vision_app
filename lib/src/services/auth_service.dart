@@ -64,9 +64,11 @@ class AuthService extends ChangeNotifier {
           // Ignore errors from sign out
         }
 
-        final GoogleSignIn googleSignIn = GoogleSignIn(
+        // Use serverClientId from google-services.json (web client type 3)
+        // This is the OAuth 2.0 client ID for web application
+        GoogleSignIn googleSignIn = GoogleSignIn(
           scopes: ['email', 'profile'],
-          // Add server client ID if available in firebase_options
+          serverClientId: '34852440749-13q9rar185r16ipcfbpuknbv4eo017fa.apps.googleusercontent.com',
         );
         
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
@@ -75,8 +77,25 @@ class AuthService extends ChangeNotifier {
         }
         
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-          throw Exception('Failed to get Google authentication tokens. Please check your Firebase configuration.');
+        
+        // Check if we got the required tokens
+        if (googleAuth.idToken == null) {
+          throw Exception(
+            'Failed to get Google authentication tokens.\n\n'
+            'This usually means:\n'
+            '1. SHA-1 fingerprint is missing in Firebase Console\n'
+            '2. OAuth client is not configured\n\n'
+            'To fix:\n'
+            '1. Get your SHA-1: Run "keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android" (on Windows: check Android Studio > Gradle > signingReport)\n'
+            '2. Go to Firebase Console > Project Settings > Your Android App\n'
+            '3. Add SHA-1 fingerprint\n'
+            '4. Download updated google-services.json and replace the current one'
+          );
+        }
+        
+        if (googleAuth.accessToken == null) {
+          // Some configurations work with just idToken
+          throw Exception('Failed to get Google access token. Please check your Firebase configuration.');
         }
         
         final credential = GoogleAuthProvider.credential(
@@ -194,20 +213,33 @@ class AuthService extends ChangeNotifier {
     final snap = await ref.get();
     final now = FieldValue.serverTimestamp();
     final name = user.displayName ?? displayNameHint ?? user.email?.split('@').first;
+    final photoUrl = user.photoURL; // Get photo URL from Firebase Auth (for Google sign-in)
+    
+    final dataToSet = <String, dynamic>{
+      'name': name,
+      'email': user.email,
+      'lastLoginAt': now,
+    };
+    
+    // If user has a photo URL from Google Auth and Firestore doesn't have one, save it
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      // Check if Firestore already has a photoUrl
+      String? existingPhotoUrl;
+      if (snap.exists) {
+        existingPhotoUrl = snap.data()?['photoUrl'] as String?;
+      }
+      // Only update if Firestore doesn't have one or if it's different from Auth
+      if (existingPhotoUrl == null || existingPhotoUrl != photoUrl) {
+        dataToSet['photoUrl'] = photoUrl;
+      }
+    }
+    
     if (!snap.exists) {
-      await ref.set({
-        'name': name,
-        'email': user.email,
-        'active': true,
-        'createdAt': now,
-        'lastLoginAt': now,
-      }, SetOptions(merge: true));
+      dataToSet['active'] = true;
+      dataToSet['createdAt'] = now;
+      await ref.set(dataToSet, SetOptions(merge: true));
     } else {
-      await ref.set({
-        'name': name,
-        'email': user.email,
-        'lastLoginAt': now,
-      }, SetOptions(merge: true));
+      await ref.set(dataToSet, SetOptions(merge: true));
     }
   }
 

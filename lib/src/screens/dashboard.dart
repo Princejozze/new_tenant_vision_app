@@ -50,13 +50,18 @@ class DashboardScreen extends StatelessWidget {
         print('DashboardScreen: Found ${houses.length} houses');
         final metrics = _calculateMetrics(houses);
         
+        // Calculate notification count (overdue + no payments)
+        final notificationCount = _calculateNotificationCount(houses);
+        
         return Scaffold(
           appBar: AppBar(
+            leading: null,
+            automaticallyImplyLeading: false,
             title: const Text('Dashboard'),
            actions: [ // Removed search/plus per requirement
              // Intentionally left blank: actions moved to Properties page
              // IconButton(Icons.search ...), IconButton(Icons.add ...)
-            
+             _buildNotificationIcon(context, notificationCount),
              Consumer<ThemeService>(
                builder: (context, themeService, _) {
                  final mode = themeService.mode;
@@ -619,6 +624,82 @@ class DashboardScreen extends StatelessWidget {
         fullscreenDialog: true,
       ),
     );
+  }
+
+  int _calculateNotificationCount(List<House> houses) {
+    int count = 0;
+    for (var house in houses) {
+      for (var room in house.rooms) {
+        if (room.status == RoomStatus.occupied && room.tenant != null) {
+          final tenant = room.tenant!;
+          // Count tenants with no payments (forgot to add payment) or overdue payments
+          // Note: isOverdue already covers the case of no payments, but we check both
+          // for clarity - tenants with no payments should always be counted
+          if (tenant.payments.isEmpty || tenant.isOverdue) {
+            count++;
+          }
+        }
+      }
+    }
+    return count;
+  }
+
+  Widget _buildNotificationIcon(BuildContext context, int count) {
+    if (count == 0) {
+      return IconButton(
+        icon: const Icon(Icons.notifications_none),
+        onPressed: () {
+          // Navigate to reminders/overdue screen
+          _navigateToOverdue(context);
+        },
+        tooltip: 'No notifications',
+      );
+    }
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications),
+          onPressed: () {
+            // Navigate to reminders/overdue screen
+            _navigateToOverdue(context);
+          },
+          tooltip: '$count payment notification${count > 1 ? 's' : ''}',
+        ),
+        Positioned(
+          right: 8,
+          top: 8,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Colors.red,
+              shape: BoxShape.circle,
+            ),
+            constraints: const BoxConstraints(
+              minWidth: 16,
+              minHeight: 16,
+            ),
+            child: Text(
+              count > 99 ? '99+' : count.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _navigateToOverdue(BuildContext context) {
+    // Navigate to reminders screen (index 2) which has overdue tab
+    if (onNavigateToTab != null) {
+      onNavigateToTab!(2);
+    }
   }
 
   DashboardMetrics _calculateMetrics(List<House> houses) {

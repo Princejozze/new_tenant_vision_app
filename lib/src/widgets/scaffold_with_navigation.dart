@@ -9,6 +9,7 @@ import 'package:myapp/src/screens/reminders_screen.dart';
 import 'package:myapp/src/screens/overdue_payments_screen.dart';
 import 'package:myapp/src/screens/payment_history_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class ScaffoldWithNavigation extends StatefulWidget {
@@ -60,7 +61,6 @@ class _MobileScaffold extends StatelessWidget {
   void _openProfile(BuildContext context) => context.go('/profile');
   void _openSettings(BuildContext context) => context.go('/settings');
   void _openFinancial(BuildContext context) => context.go('/financial');
-  void _openAnalytics(BuildContext context) => context.go('/analytics');
   void _openSubscription(BuildContext context) => context.go('/subscription');
   void _openSupport(BuildContext context) => context.go('/support');
   final VoidCallback onSignOut;
@@ -83,7 +83,12 @@ class _MobileScaffold extends StatelessWidget {
     }
   }
 
-  String? _getProfileImageUrl(Map<String, dynamic>? landlordData) {
+  String? _getProfileImageUrl(Map<String, dynamic>? landlordData, User? user) {
+    // First check Firebase Auth for photo URL (for Google sign-in users)
+    if (user?.photoURL != null && user!.photoURL!.isNotEmpty) {
+      return user.photoURL;
+    }
+    // Fallback to Firestore
     return landlordData?['photoUrl'] as String?;
   }
 
@@ -135,12 +140,13 @@ class _MobileScaffold extends StatelessWidget {
         child: ListView(
           children: [
             FutureBuilder<Map<String, dynamic>?>(
-              future: _getLandlordInfo(auth),
+              future: _getLandlordInfo(context.watch<AuthService>()),
               builder: (context, snapshot) {
+                final auth = context.watch<AuthService>();
                 final landlordData = snapshot.data;
                 final joinDate = landlordData?['createdAt'] as Timestamp?;
                 final planType = landlordData?['planType'] as String? ?? 'Free Plan';
-                final profileImageUrl = _getProfileImageUrl(landlordData);
+                final profileImageUrl = _getProfileImageUrl(landlordData, auth.user);
                 
                 String joinDateText = 'Joined recently';
                 if (joinDate != null) {
@@ -244,13 +250,8 @@ class _MobileScaffold extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.attach_money),
-              title: const Text('Financial'),
+              title: const Text('Financial Analytics'),
               onTap: () { Navigator.pop(context); _openFinancial(context); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.analytics),
-              title: const Text('Analytics'),
-              onTap: () { Navigator.pop(context); _openAnalytics(context); },
             ),
             ListTile(
               leading: const Icon(Icons.settings),
@@ -261,12 +262,6 @@ class _MobileScaffold extends StatelessWidget {
               leading: const Icon(Icons.support_agent),
               title: const Text('Support'),
               onTap: () { Navigator.pop(context); _openSupport(context); },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () { Navigator.pop(context); onSignOut(); },
             ),
           ],
         ),
@@ -302,7 +297,6 @@ class _DesktopScaffold extends StatelessWidget {
   void _openProfile(BuildContext context) => context.go('/profile');
   void _openSettings(BuildContext context) => context.go('/settings');
   void _openFinancial(BuildContext context) => context.go('/financial');
-  void _openAnalytics(BuildContext context) => context.go('/analytics');
   void _openSubscription(BuildContext context) => context.go('/subscription');
   void _openSupport(BuildContext context) => context.go('/support');
   final VoidCallback onSignOut;

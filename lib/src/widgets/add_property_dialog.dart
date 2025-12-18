@@ -1,6 +1,9 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/src/services/house_service.dart';
+import 'package:myapp/src/services/image_upload_service.dart';
 import 'package:provider/provider.dart';
 
 class AddPropertyDialog extends StatefulWidget {
@@ -15,6 +18,8 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _roomsController = TextEditingController();
+  String? _imageUrl;
+  bool _isUploadingImage = false;
 
   @override
   void dispose() {
@@ -24,7 +29,67 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
     super.dispose();
   }
 
-  void _saveHouse() {
+  Future<void> _uploadImage() async {
+    try {
+      final imageFile = await ImageUploadService.pickImageWithSource(context);
+      if (imageFile == null) return;
+
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      // Generate a temporary house ID for the image path
+      final tempHouseId = 'house-${DateTime.now().millisecondsSinceEpoch}';
+      final downloadUrl = await ImageUploadService.uploadHouseImage(
+        imageFile: File(imageFile.path),
+        houseId: tempHouseId,
+      );
+
+      if (downloadUrl != null && downloadUrl.isNotEmpty && mounted) {
+        setState(() {
+          _imageUrl = downloadUrl;
+          _isUploadingImage = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo uploaded successfully')),
+        );
+      } else {
+        if (mounted) {
+          setState(() {
+            _isUploadingImage = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload photo. Please ensure you are logged in and Firebase Storage rules are deployed. A default image will be used.'),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Exception in house image upload: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+        String errorMessage = 'Error uploading photo';
+        if (e.toString().contains('Permission') || e.toString().contains('unauthorized')) {
+          errorMessage = 'Permission denied. Please ensure Firebase Storage rules are deployed in Firebase Console.';
+        } else {
+          errorMessage = 'Error: ${e.toString()}';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  void _saveHouse() async {
     if (_formKey.currentState!.validate()) {
       final houseService = Provider.of<HouseService>(context, listen: false);
       
@@ -36,17 +101,20 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
         name: houseName,
         address: address,
         numberOfRooms: numberOfRooms,
+        imageUrl: _imageUrl, // Will use random if null
       );
       
-      Navigator.of(context).pop();
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$houseName added successfully with $numberOfRooms rooms!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$houseName added successfully with $numberOfRooms rooms!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     }
   }
 
@@ -116,6 +184,48 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
               return null;
             },
           ),
+          const SizedBox(height: 16),
+          const Text('House Image (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _isUploadingImage ? null : _uploadImage,
+            child: Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300, width: 2),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey.shade50,
+              ),
+              child: _isUploadingImage
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : _imageUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.network(
+                            _imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildImagePlaceholder();
+                            },
+                          ),
+                        )
+                      : _buildImagePlaceholder(),
+            ),
+          ),
+          if (_imageUrl == null && !_isUploadingImage)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Text(
+                'Tap to add photo. A default image will be used if none is selected.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -194,6 +304,20 @@ class _AddPropertyDialogState extends State<AddPropertyDialog> {
       ),
       actions: actions,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey.shade400),
+        const SizedBox(height: 8),
+        Text(
+          'Tap to add photo',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+        ),
+      ],
     );
   }
 }

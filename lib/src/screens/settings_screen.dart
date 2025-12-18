@@ -45,13 +45,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (user == null) return;
     
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('landlords')
-          .doc(user.uid)
-          .get();
-      if (doc.exists && doc.data()?['photoUrl'] != null) {
+      // First check Firebase Auth for photo URL (for Google sign-in users)
+      String? photoUrl = user.photoURL;
+      
+      // If no photo in Auth, check Firestore
+      if (photoUrl == null || photoUrl.isEmpty) {
+        final doc = await FirebaseFirestore.instance
+            .collection('landlords')
+            .doc(user.uid)
+            .get();
+        if (doc.exists && doc.data()?['photoUrl'] != null) {
+          photoUrl = doc.data()?['photoUrl'];
+        }
+      }
+      
+      if (photoUrl != null && photoUrl.isNotEmpty) {
         setState(() {
-          _profileImageUrl = doc.data()?['photoUrl'];
+          _profileImageUrl = photoUrl;
         });
       }
     } catch (e) {
@@ -221,11 +231,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              auth.displayName ?? 'User',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    auth.displayName ?? 'User',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 20),
+                                  onPressed: () => context.go('/profile'),
+                                  tooltip: 'Edit profile',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -337,6 +360,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      leading: const Icon(Icons.lock),
+                      title: const Text('Change Password'),
+                      subtitle: const Text('Update your password'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _showChangePasswordDialog(context, auth),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
                       leading: const Icon(Icons.subscriptions),
                       title: const Text('Subscription'),
                       subtitle: const Text('Manage your subscription plan'),
@@ -372,45 +403,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.category),
-                      title: const Text('Category'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Category settings coming soon!')),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
                       leading: const Icon(Icons.payment),
                       title: const Text('Payment Mode'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Payment mode settings coming soon!')),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.home),
-                      title: const Text('Rent-Inclusive Charges'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Rent-inclusive charges settings coming soon!')),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.calendar_today),
-                      title: const Text('Financial Year'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Financial year settings coming soon!')),
                         );
                       },
                     ),
@@ -554,6 +552,157 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditNameDialog(BuildContext context, AuthService auth) {
+    final nameController = TextEditingController(text: auth.displayName ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Name cannot be empty')),
+                );
+                return;
+              }
+              
+              try {
+                await auth.changeDisplayName(newName);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Name updated successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating name: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, AuthService auth) {
+    _currentPasswordController.clear();
+    _newPasswordController.clear();
+    _confirmPasswordController.clear();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _currentPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _newPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _confirmPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final currentPassword = _currentPasswordController.text;
+              final newPassword = _newPasswordController.text;
+              final confirmPassword = _confirmPasswordController.text;
+
+              if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please fill in all fields')),
+                );
+                return;
+              }
+
+              if (newPassword != confirmPassword) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('New passwords do not match')),
+                );
+                return;
+              }
+
+              if (newPassword.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                );
+                return;
+              }
+
+              try {
+                await auth.changePassword(currentPassword, newPassword);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Password changed successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error changing password: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Change Password'),
           ),
         ],
       ),

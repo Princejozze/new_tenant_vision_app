@@ -66,6 +66,7 @@ class HouseService extends ChangeNotifier {
     required String name,
     required String address,
     required int numberOfRooms,
+    String? imageUrl, // Optional image URL, if null will use random image
   }) {
     final rooms = _generateRooms(numberOfRooms);
     print('Generated ${rooms.length} rooms for house: $name');
@@ -75,7 +76,7 @@ class HouseService extends ChangeNotifier {
       name: name,
       location: _extractLocationFromAddress(address),
       price: '\$${_generateRandomPrice()}',
-      imageUrl: _getRandomHouseImage(),
+      imageUrl: imageUrl ?? _getRandomHouseImage(), // Use provided image or fallback to random
       address: address,
       totalRooms: numberOfRooms,
       occupiedRooms: 0, // New houses start with no occupied rooms
@@ -156,6 +157,7 @@ class HouseService extends ChangeNotifier {
     required String houseId,
     required String name,
     required String address,
+    String? imageUrl, // Optional image URL, if null keeps existing image
   }) {
     final houseIndex = _houses.indexWhere((h) => h.id == houseId);
     if (houseIndex != -1) {
@@ -166,7 +168,7 @@ class HouseService extends ChangeNotifier {
         name: name,
         location: _extractLocationFromAddress(address),
         price: house.price,
-        imageUrl: house.imageUrl,
+        imageUrl: imageUrl ?? house.imageUrl, // Use provided image or keep existing
         address: address,
         totalRooms: house.totalRooms,
         occupiedRooms: house.occupiedRooms,

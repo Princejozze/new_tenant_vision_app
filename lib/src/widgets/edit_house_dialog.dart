@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/src/services/house_service.dart';
+import 'package:myapp/src/services/image_upload_service.dart';
 import 'package:myapp/src/models/house.dart';
 
 class EditHouseDialog extends StatefulWidget {
@@ -16,12 +18,15 @@ class _EditHouseDialogState extends State<EditHouseDialog> {
   late TextEditingController _nameController;
   late TextEditingController _addressController;
   final _formKey = GlobalKey<FormState>();
+  String? _imageUrl;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.house.name);
     _addressController = TextEditingController(text: widget.house.address);
+    _imageUrl = widget.house.imageUrl; // Initialize with current image
   }
 
   @override
@@ -86,6 +91,70 @@ class _EditHouseDialogState extends State<EditHouseDialog> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'House Image',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _isUploadingImage ? null : _uploadImage,
+              child: Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(color: colorScheme.outline.withOpacity(0.3), width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                  color: colorScheme.surfaceVariant.withOpacity(0.3),
+                ),
+                child: _isUploadingImage
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : _imageUrl != null && _imageUrl!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(
+                                  _imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildImagePlaceholder(theme, colorScheme);
+                                  },
+                                ),
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _buildImagePlaceholder(theme, colorScheme),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap image to change',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
@@ -156,6 +225,51 @@ class _EditHouseDialogState extends State<EditHouseDialog> {
     );
   }
 
+  Future<void> _uploadImage() async {
+    try {
+      final imageFile = await ImageUploadService.pickImageWithSource(context);
+      if (imageFile == null) return;
+
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      // Upload with the house ID
+      final downloadUrl = await ImageUploadService.uploadHouseImage(
+        imageFile: File(imageFile.path),
+        houseId: widget.house.id,
+      );
+
+      if (downloadUrl != null && mounted) {
+        setState(() {
+          _imageUrl = downloadUrl;
+          _isUploadingImage = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo uploaded successfully')),
+        );
+      } else {
+        if (mounted) {
+          setState(() {
+            _isUploadingImage = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload photo. Please try again.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading photo: $e')),
+        );
+      }
+    }
+  }
+
   void _saveChanges() {
     if (_formKey.currentState!.validate()) {
       final houseService = Provider.of<HouseService>(context, listen: false);
@@ -164,17 +278,34 @@ class _EditHouseDialogState extends State<EditHouseDialog> {
         houseId: widget.house.id,
         name: _nameController.text.trim(),
         address: _addressController.text.trim(),
+        imageUrl: _imageUrl, // Pass the image URL (will keep existing if unchanged)
       );
 
       Navigator.of(context).pop();
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('House updated successfully!'),
+        const SnackBar(
+          content: Text('House updated successfully!'),
           backgroundColor: Colors.green,
         ),
       );
     }
+  }
+
+  Widget _buildImagePlaceholder(ThemeData theme, ColorScheme colorScheme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate, size: 48, color: colorScheme.onSurfaceVariant),
+        const SizedBox(height: 8),
+        Text(
+          'Tap to add photo',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
   }
 }
 

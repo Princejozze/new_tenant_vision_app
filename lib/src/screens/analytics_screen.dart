@@ -165,37 +165,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
             ),
           ),
-        );
-        } catch (e, stackTrace) {
-          print('Error in AnalyticsScreen: $e');
-          print('Stack trace: $stackTrace');
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Analytics'),
-            ),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error loading analytics',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      e.toString(),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        ),
         );
         } catch (e, stackTrace) {
           print('Error in AnalyticsScreen: $e');

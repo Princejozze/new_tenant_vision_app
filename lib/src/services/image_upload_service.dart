@@ -1,11 +1,17 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 
 class ImageUploadService {
   static final ImagePicker _picker = ImagePicker();
   static final FirebaseStorage _storage = FirebaseStorage.instance;
+  
+  /// Check if user is authenticated
+  static bool _isAuthenticated() {
+    return FirebaseAuth.instance.currentUser != null;
+  }
 
   /// Pick an image from gallery or camera
   static Future<XFile?> pickImage({ImageSource source = ImageSource.gallery}) async {
@@ -58,16 +64,58 @@ class ImageUploadService {
     String? fileName,
   }) async {
     try {
+      // Check authentication
+      if (!_isAuthenticated()) {
+        debugPrint('Error: User is not authenticated');
+        return null;
+      }
+      
+      final user = FirebaseAuth.instance.currentUser;
+      debugPrint('Uploading as user: ${user?.uid}');
+      
+      // Check if file exists
+      if (!await imageFile.exists()) {
+        debugPrint('Error: Image file does not exist at path: ${imageFile.path}');
+        return null;
+      }
+      
       final String finalFileName = fileName ?? '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final Reference ref = _storage.ref().child('$path/$finalFileName');
       
-      final UploadTask uploadTask = ref.putFile(imageFile);
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
+      debugPrint('Uploading image to path: $path/$finalFileName');
+      debugPrint('File size: ${await imageFile.length()} bytes');
       
-      return downloadUrl;
-    } catch (e) {
-      debugPrint('Error uploading image: $e');
+      // Set metadata for the upload
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        cacheControl: 'max-age=31536000',
+      );
+      
+      final UploadTask uploadTask = ref.putFile(imageFile, metadata);
+      final TaskSnapshot snapshot = await uploadTask;
+      
+      if (snapshot.state == TaskState.success) {
+        final String downloadUrl = await snapshot.ref.getDownloadURL();
+        debugPrint('Image uploaded successfully. URL: $downloadUrl');
+        return downloadUrl;
+      } else {
+        debugPrint('Upload failed with state: ${snapshot.state}');
+        return null;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error uploading image to $path: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Check if it's a permissions error
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('permission') || 
+          errorStr.contains('unauthorized') || 
+          errorStr.contains('403') ||
+          errorStr.contains('storage/unauthorized')) {
+        debugPrint('PERMISSION ERROR: Firebase Storage rules may not be deployed. Please deploy storage.rules to Firebase Console.');
+        throw Exception('Permission denied. Please ensure Firebase Storage rules are deployed and you are logged in.');
+      }
+      
       return null;
     }
   }
@@ -93,6 +141,18 @@ class ImageUploadService {
       imageFile: imageFile,
       path: 'landlords',
       fileName: '$landlordId.jpg',
+    );
+  }
+
+  /// Upload house image
+  static Future<String?> uploadHouseImage({
+    required File imageFile,
+    required String houseId,
+  }) async {
+    return await uploadImage(
+      imageFile: imageFile,
+      path: 'houses',
+      fileName: '$houseId.jpg',
     );
   }
 

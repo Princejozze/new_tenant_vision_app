@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/src/models/tenant.dart';
@@ -405,7 +406,7 @@ class _NewTenantOnboardingDialogState extends State<NewTenantOnboardingDialog> {
         tenantId: tenantId,
       );
 
-      if (downloadUrl != null && mounted) {
+      if (downloadUrl != null && downloadUrl.isNotEmpty && mounted) {
         setState(() {
           _photoUrl = downloadUrl;
           _isUploadingPhoto = false;
@@ -419,17 +420,31 @@ class _NewTenantOnboardingDialogState extends State<NewTenantOnboardingDialog> {
             _isUploadingPhoto = false;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload photo. Please try again.')),
+            const SnackBar(
+              content: Text('Failed to upload photo. Please ensure you are logged in and Firebase Storage rules are deployed.'),
+              duration: Duration(seconds: 5),
+            ),
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Exception in tenant image upload: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isUploadingPhoto = false;
         });
+        String errorMessage = 'Error uploading photo';
+        if (e.toString().contains('Permission') || e.toString().contains('unauthorized')) {
+          errorMessage = 'Permission denied. Please ensure Firebase Storage rules are deployed in Firebase Console.';
+        } else {
+          errorMessage = 'Error: ${e.toString()}';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading photo: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
